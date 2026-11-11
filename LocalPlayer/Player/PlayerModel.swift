@@ -1,7 +1,7 @@
 import AVFoundation
 import Combine
 
-/// AVPlayer 封装：时间轴、轨道、外挂字幕、倍速、缓冲状态
+/// AVPlayer 封装：时间轴、音轨、倍速、缓冲状态
 final class PlayerModel: ObservableObject {
     let item: VideoItem
     let player: AVPlayer
@@ -13,15 +13,8 @@ final class PlayerModel: ObservableObject {
     @Published var rate: Float = 1
     @Published var failed: String?
 
-    @Published var primaryCues: [SubtitleCue] = []
-    @Published var secondaryCues: [SubtitleCue] = []
-    @Published var primarySubtitleName: String?
-    @Published var secondarySubtitleName: String?
-
     @Published var audioOptions: [AVMediaSelectionOption] = []
-    @Published var legibleOptions: [AVMediaSelectionOption] = []
     @Published var selectedAudioIndex = -1
-    @Published var selectedLegibleIndex = -1
 
     var onEnded: (() -> Void)?
 
@@ -30,7 +23,6 @@ final class PlayerModel: ObservableObject {
     private var statusObservation: NSKeyValueObservation?
     private var durationObservation: NSKeyValueObservation?
     private var timeControlObservation: NSKeyValueObservation?
-    private var legibleGroup: AVMediaSelectionGroup?
     private var audibleGroup: AVMediaSelectionGroup?
 
     init(item: VideoItem, resumeTime: Double, rate: Float) {
@@ -43,10 +35,8 @@ final class PlayerModel: ObservableObject {
         player.preventsDisplaySleepDuringVideoPlayback = true
         self.rate = rate
 
-        legibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .legible)
         audibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .audible)
         audioOptions = audibleGroup?.options ?? []
-        legibleOptions = legibleGroup?.options ?? []
 
         observe(playerItem)
         attachTimeObserver()
@@ -145,63 +135,12 @@ final class PlayerModel: ObservableObject {
         if isPlaying { player.rate = value }
     }
 
-    // MARK: - 字幕
-
-    func loadPrimarySubtitle(_ url: URL) {
-        primarySubtitleName = url.lastPathComponent
-        DispatchQueue.global(qos: .userInitiated).async {
-            let cues = SubtitleParser.parse(url: url)
-            DispatchQueue.main.async { [weak self] in
-                self?.primaryCues = cues
-            }
-        }
-        // 外挂字幕优先，关闭内嵌字幕
-        selectLegible(-1)
-    }
-
-    func loadSecondarySubtitle(_ url: URL) {
-        secondarySubtitleName = url.lastPathComponent
-        DispatchQueue.global(qos: .userInitiated).async {
-            let cues = SubtitleParser.parse(url: url)
-            DispatchQueue.main.async { [weak self] in
-                self?.secondaryCues = cues
-            }
-        }
-    }
-
-    func clearPrimarySubtitle() {
-        primaryCues = []
-        primarySubtitleName = nil
-    }
-
-    func clearSecondarySubtitle() {
-        secondaryCues = []
-        secondarySubtitleName = nil
-    }
+    // MARK: - 音轨
 
     func selectAudio(_ index: Int) {
         guard let group = audibleGroup, index >= 0, index < group.options.count else { return }
         player.currentItem?.select(group.options[index], in: group)
         selectedAudioIndex = index
-    }
-
-    func selectLegible(_ index: Int) {
-        guard let group = legibleGroup else { return }
-        if index >= 0, index < group.options.count {
-            player.currentItem?.select(group.options[index], in: group)
-            selectedLegibleIndex = index
-        } else {
-            player.currentItem?.select(nil, in: group)
-            selectedLegibleIndex = -1
-        }
-    }
-
-    var currentPrimaryText: String? {
-        SubtitleParser.cue(at: currentTime, in: primaryCues)?.text
-    }
-
-    var currentSecondaryText: String? {
-        SubtitleParser.cue(at: currentTime, in: secondaryCues)?.text
     }
 
     // MARK: - 清理

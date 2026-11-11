@@ -10,7 +10,6 @@ struct VideoItem: Identifiable, Hashable {
     let fileSize: Int64
     let modified: Date
     let ext: String
-    let subtitles: [URL]
 
     var id: String { relativePath }
 
@@ -40,13 +39,6 @@ extension VideoItem {
         let size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
         let modified = (attrs[.modificationDate] as? Date) ?? Date.distantPast
         let folder = (relative as NSString).deletingLastPathComponent
-        let base = url.deletingPathExtension()
-
-        var subs: [URL] = []
-        for ext in ["srt", "ass", "ssa", "vtt", "sub"] {
-            let candidate = base.appendingPathExtension(ext)
-            if FileManager.default.fileExists(atPath: candidate.path) { subs.append(candidate) }
-        }
 
         self.url = url
         self.relativePath = relative
@@ -55,7 +47,6 @@ extension VideoItem {
         self.fileSize = size
         self.modified = modified
         self.ext = ext
-        self.subtitles = subs
     }
 }
 

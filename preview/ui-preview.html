@@ -348,7 +348,6 @@
   <button data-go="empty">空状态</button>
   <button data-go="player">播放页</button>
   <button data-go="settings">设置</button>
-  <button data-go="upload">Wi-Fi 传文件</button>
 </nav>
 
 <div class="phone">
@@ -416,11 +415,10 @@
       <div class="empty">
         <div class="big"><i data-ic="stack"></i></div>
         <h3>还没有视频</h3>
-        <p>用 Wi-Fi 从电脑传，或从相册 / 文件 App 导入<br>视频只存在本机，不上传任何服务器</p>
-        <button class="btn-main" data-go="upload"><i data-ic="wifi" style="width:15px;height:15px"></i> Wi-Fi 传文件</button>
+        <p>从相册或「文件」App 导入<br>视频只存在本机，不联网、不上传</p>
         <div class="btn-row">
-          <button class="btn-sub"><i data-ic="photo" style="width:15px;height:15px"></i>相册</button>
-          <button class="btn-sub"><i data-ic="folder" style="width:15px;height:15px"></i>文件</button>
+          <button class="btn-main" style="flex:1"><i data-ic="photo" style="width:15px;height:15px"></i>相册</button>
+          <button class="btn-sub" style="flex:1"><i data-ic="folder" style="width:15px;height:15px"></i>文件</button>
         </div>
       </div>
     </section>
@@ -477,38 +475,6 @@
           <div class="cell">默认倍速<span class="val acc">1×</span></div>
           <div class="cell">自动连播下一个<button class="sw on" data-sw></button></div>
           <div class="cell">断点续播<button class="sw on" data-sw></button></div>
-          <div class="cell">自动加载同名字幕<button class="sw on" data-sw></button></div>
-        </div>
-
-        <div class="glabel">字幕</div>
-        <div class="group">
-          <div class="slider-row">
-            <div class="sl-top"><span>字号</span><span id="sizeVal">20</span></div>
-            <input type="range" id="sizeRange" min="14" max="34" step="1" value="20">
-          </div>
-          <div class="cell">
-            颜色
-            <div class="dots" id="dots">
-              <button class="dot sel" data-color="#FFFFFF" style="background:#FFFFFF"></button>
-              <button class="dot" data-color="#FFE066" style="background:#FFE066"></button>
-              <button class="dot" data-color="#7ED0FF" style="background:#7ED0FF"></button>
-              <button class="dot" data-color="#FFB3C1" style="background:#FFB3C1"></button>
-              <button class="dot" data-color="#B8F2C9" style="background:#B8F2C9"></button>
-              <button class="dot" data-color="#FFD6A5" style="background:#FFD6A5"></button>
-            </div>
-          </div>
-          <div class="cell">描边（黑边）<button class="sw on" data-sw id="swOutline"></button></div>
-          <div class="slider-row">
-            <div class="sl-top"><span>背景不透明度</span><span id="opVal">35%</span></div>
-            <input type="range" id="opRange" min="0" max="100" step="5" value="35">
-          </div>
-          <div class="cell">双字幕<button class="sw" data-sw id="swDual"></button></div>
-        </div>
-
-        <div class="glabel">预览</div>
-        <div class="prevbox">
-          <span id="subPrev">示例字幕：这就是播放时的样子</span>
-          <span id="subPrev2">Second subtitle line</span>
         </div>
 
         <div class="glabel">存储</div>
@@ -528,42 +494,13 @@
       </div>
     </section>
 
-    <!-- ================= 传文件 ================= -->
-    <section class="view" id="v-upload">
-      <div class="sheet-head">Wi-Fi 传文件<button class="done" data-go="lib">完成</button></div>
-      <div class="up-wrap">
-        <div class="addr">
-          <div class="tip">在电脑浏览器里打开这个地址</div>
-          <button class="url" id="copyBtn">http://192.168.1.23:8080 <i data-ic="copy"></i></button>
-          <div class="note">手机和电脑要连同一个 Wi-Fi，地址才对得上</div>
-        </div>
-
-        <div class="qrbox">
-          <div class="qr"><canvas id="qr" width="300" height="300"></canvas></div>
-          <div class="cap">扫码也能直接进上传页（预览为示意图案）</div>
-        </div>
-
-        <div class="status">
-          <span class="lamp"></span>
-          <span>服务已开启</span>
-          <span class="cnt">本次已接收 2 个</span>
-        </div>
-
-        <div class="tips">
-          <div><i></i><span>拖拽或点击选择文件，可多选，顺序上传</span></div>
-          <div><i></i><span>大文件建议用 5GHz Wi-Fi，2.4G 会明显慢</span></div>
-          <div><i></i><span>传输期间请保持这个页面打开</span></div>
-          <div><i></i><span>关掉页面即停止服务，不会在后台跑</span></div>
-        </div>
-      </div>
-    </section>
 
   </div>
   <div class="home-bar"></div>
 </div>
 
 <p class="foot">
-  静态原型 · 对应源码 <code>LocalPlayer/Views/</code> 下的 SwiftUI 实现<br>
+  静态原型 · 对应源码 <code>LocalPlayer/Views/</code> 下的 SwiftUI 实现（不含字幕与局域网传输）<br>
   真机运行需要 macOS + Xcode：<code>xcodegen generate</code> → Run，或用 GitHub Actions 编译 ipa 再签名安装
 </p>
 
@@ -764,100 +701,13 @@ document.querySelectorAll('[data-sw]').forEach(function(sw){
   sw.addEventListener('click', function(e){
     e.stopPropagation();
     sw.classList.toggle('on');
-    if(sw.id === 'swOutline'){ applyOutline(); }
-    if(sw.id === 'swDual'){ applyDual(); }
   });
 });
 
-const subPrev = document.getElementById('subPrev');
-const subPrev2 = document.getElementById('subPrev2');
-const sizeRange = document.getElementById('sizeRange');
-const sizeVal = document.getElementById('sizeVal');
-const opRange = document.getElementById('opRange');
-const opVal = document.getElementById('opVal');
-let outlineOn = true;
-let subColor = '#FFFFFF';
-
-function applyOutline(){
-  subPrev.style.textShadow = outlineOn
-    ? '0 1px 2px #000,0 0 2px #000,1px 0 1px #000,-1px 0 1px #000'
-    : 'none';
-}
-function applyDual(){
-  const on = document.getElementById('swDual').classList.contains('on');
-  subPrev2.style.display = on ? 'inline-block' : 'none';
-  subPrev2.style.color = subColor;
-  subPrev2.style.fontSize = (parseInt(sizeRange.value,10) * 0.85) + 'px';
-}
-function applyBg(){
-  const a = parseInt(opRange.value,10) / 100;
-  subPrev.style.background = 'rgba(0,0,0,' + a + ')';
-}
-
-sizeRange.addEventListener('input', function(){
-  sizeVal.textContent = sizeRange.value;
-  subPrev.style.fontSize = sizeRange.value + 'px';
-  applyDual();
-});
-opRange.addEventListener('input', function(){
-  opVal.textContent = opRange.value + '%';
-  applyBg();
-});
-document.querySelectorAll('.dot').forEach(function(d){
-  d.addEventListener('click', function(){
-    document.querySelectorAll('.dot').forEach(function(x){ x.classList.remove('sel'); });
-    d.classList.add('sel');
-    subColor = d.dataset.color;
-    subPrev.style.color = subColor;
-    subPrev2.style.color = subColor;
-  });
-});
-applyBg(); applyOutline();
-
-/* ---------- 传文件：复制地址 ---------- */
-document.getElementById('copyBtn').addEventListener('click', function(){
-  const url = 'http://192.168.1.23:8080';
-  const done = function(){ 
-    this.innerHTML = '已复制 ✓';
-    const self = this;
-    setTimeout(function(){
-      self.innerHTML = url + ' <svg class="ic" viewBox="0 0 24 24">' + ICONS.copy + '</svg>';
-    }, 1400);
-  }.bind(this);
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(url).then(done).catch(done);
-  } else { done(); }
-});
-
-/* ---------- 假二维码 ---------- */
-(function drawQR(){
-  const c = document.getElementById('qr');
-  if(!c) return;
-  const ctx = c.getContext('2d');
-  const N = 25, cell = c.width / N;
-  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height);
-  ctx.fillStyle = '#000';
-  let seed = 20261111;
-  function rnd(){ seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
-  for(let y=0;y<N;y++){
-    for(let x=0;x<N;x++){
-      const inFinder = (x<7&&y<7)||(x>N-8&&y<7)||(x<7&&y>N-8);
-      if(inFinder) continue;
-      if(rnd() > 0.52) ctx.fillRect(x*cell, y*cell, cell, cell);
-    }
-  }
-  function finder(px,py){
-    ctx.fillStyle = '#000'; ctx.fillRect(px*cell, py*cell, 7*cell, 7*cell);
-    ctx.fillStyle = '#fff'; ctx.fillRect((px+1)*cell, (py+1)*cell, 5*cell, 5*cell);
-    ctx.fillStyle = '#000'; ctx.fillRect((px+2)*cell, (py+2)*cell, 3*cell, 3*cell);
-  }
-  finder(0,0); finder(N-7,0); finder(0,N-7);
-})();
-
-/* ---------- 支持 #player / #settings / #upload 直接打开某一屏 ---------- */
+/* ---------- 支持 #player / #settings 直接打开某一屏 ---------- */
 (function(){
   const h = decodeURIComponent(location.hash.replace('#','')).trim();
-  if(['lib','empty','player','settings','upload'].indexOf(h) >= 0){ go(h); }
+  if(['lib','empty','player','settings'].indexOf(h) >= 0){ go(h); }
 })();
 </script>
 </body>

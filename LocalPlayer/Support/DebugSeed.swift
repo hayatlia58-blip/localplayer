@@ -61,23 +61,6 @@ enum DebugSeed {
             writeClip(to: folder.appendingPathComponent(spec.name),
                       top: spec.top, bottom: spec.bottom, seconds: 8)
         }
-
-        // 给每段视频都配一条外挂字幕，这样不管打开哪个都能验证字幕链路
-        let srt = """
-        1
-        00:00:00,000 --> 00:00:05,000
-        这是一行测试字幕，用来检查字号和描边
-
-        2
-        00:00:05,000 --> 00:00:12,000
-        第二句：English subtitle for layout check
-
-        """
-        for spec in specs {
-            let base = (spec.name as NSString).deletingPathExtension
-            try? srt.write(to: folder.appendingPathComponent("\(base).srt"),
-                           atomically: true, encoding: .utf8)
-        }
     }
 
     /// 伪造两条播放记录，只为让首页的「继续观看」能出现在截图里。

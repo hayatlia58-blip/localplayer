@@ -121,7 +121,6 @@ final class LibraryStore: ObservableObject {
 
     func delete(_ item: VideoItem) {
         try? FileManager.default.removeItem(at: item.url)
-        for sub in item.subtitles { try? FileManager.default.removeItem(at: sub) }
         reload()
     }
 
@@ -132,43 +131,5 @@ final class LibraryStore: ObservableObject {
         let target = base.appendingPathComponent(trimmed)
         try? FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
         reload()
-    }
-
-    /// 为该视频找可用的外挂字幕（同名、同目录）
-    func subtitleFiles(for item: VideoItem) -> [URL] {
-        var result = item.subtitles
-        let dir = item.url.deletingLastPathComponent()
-        let base = item.url.deletingPathExtension().lastPathComponent.lowercased()
-        if let contents = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
-            for url in contents {
-                let ext = url.pathExtension.lowercased()
-                guard ["srt", "ass", "ssa", "vtt", "sub"].contains(ext) else { continue }
-                if result.contains(url) { continue }
-                let name = url.deletingPathExtension().lastPathComponent.lowercased()
-                if name.hasPrefix(base) || base.hasPrefix(name) { result.append(url) }
-            }
-        }
-        return result
-    }
-
-    /// 把外部字幕复制到视频同目录并改成同名，下次打开自动关联
-    @discardableResult
-    func installSubtitle(from url: URL, for item: VideoItem, secondary: Bool) -> URL? {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-
-        let ext = url.pathExtension.lowercased()
-        let directory = item.url.deletingLastPathComponent()
-        let base = item.url.deletingPathExtension().lastPathComponent
-        let name = secondary ? "\(base).secondary.\(ext)" : "\(base).\(ext)"
-        let destination = directory.appendingPathComponent(name)
-
-        try? FileManager.default.removeItem(at: destination)
-        do {
-            try FileManager.default.copyItem(at: url, to: destination)
-            return destination
-        } catch {
-            return nil
-        }
     }
 }

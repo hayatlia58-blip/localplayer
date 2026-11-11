@@ -4,9 +4,8 @@
 
 视频只存在 App 的 `Documents` 目录里，不联网、不登录、不上传任何服务器。
 
-> 状态：源码完整（约 3800 行，23 个 Swift 文件），设计文档见 `DESIGN.md`。
-> **尚未在真机 / 模拟器上编译过**——写代码的机器是 Windows，没有 Swift 工具链，只能做静态检查。
-> 因此仓库里带了两套「把它真正跑起来」的通道（见下），第一次编译的报错会被写进 `build.log`。
+> 状态：**已在 macOS 上编译通过，并在 iPhone 模拟器里跑起来截图**（19 个 Swift 文件，约 2900 行）。设计文档见 `DESIGN.md`。
+> 功能范围：本地导入 + 播放 + 断点续播 + 手势 + 画中画。**不含字幕、不含局域网传输**（见 `DESIGN.md` 第 6 节）。
 
 ## 零、三种「看到它」的方式
 
@@ -16,7 +15,7 @@
 | **CI 模拟器截图**（GitHub Actions） | **真实编译 + 真实 SwiftUI 渲染** | 0（Public 仓库免费） | 想看真机效果，但没有 Mac |
 | **云 Mac 亲手跑**（Xcode + 模拟器） | 完全真实，可以打断点、改代码 | $0.99 起 | 想自己调、自己改 |
 
-静态原型里五个页面都能点（主页→播放页、网格/列表切换、搜索过滤、点进度条跳转、设置里改字号会实时改下方字幕预览、点 Wi-Fi 地址会复制）。它只能确认手感，**不能证明代码能编译**——后面两条才能。
+静态原型里能点的东西：主页→播放页、网格/列表切换、搜索过滤、点进度条跳转。它还原的是 v0.1（含传文件页和字幕设置），当前代码已移除这两块，**布局以 CI 截图为准**。
 
 ---
 
@@ -64,16 +63,16 @@ bash scripts/dev.sh
 
 | 任务 | 产出 | 说明 |
 |---|---|---|
-| `simulator` | `simulator-screenshots`（7 张 PNG） | 真的把 App 装进 iOS 模拟器、启动、逐屏截图；同时上传 `xcodebuild-log` |
+| `simulator` | `simulator-screenshots`（6 张 PNG） | 真的把 App 装进 iOS 模拟器、启动、逐屏截图；同时上传 `xcodebuild-log` |
 | `ipa` | `LocalPlayer-unsigned-ipa` | Release 未签名 ipa，装机用 |
 
-截图覆盖：空状态 / 主页（含「继续观看」）/ 文件夹网格 / 播放页竖屏 / 播放页横屏 / 设置 / Wi-Fi 传文件。
+截图覆盖：空状态 / 主页（含「继续观看」）/ 文件夹网格 / 播放页竖屏 / 播放页横屏 / 设置。
 调试用的启动参数（只在 Debug 生效，写在 `Support/DebugSeed.swift`）：
 
 | 参数 | 作用 |
 |---|---|
 | `-screen home\|folder\|player\|settings\|upload\|empty` | 启动后直达某一屏 |
-| `-seedDemo 1` | 现场生成 4 段 8 秒示例视频 + 外挂字幕 + 两条播放记录 |
+| `-seedDemo 1` | 现场生成 4 段 8 秒示例视频 + 两条播放记录 |
 | `-keepChrome 1` | 钉住播放控制栏（否则 4 秒后自动隐藏，截图拍不到） |
 | `-landscape 1` | 调 `requestGeometryUpdate` 真把 App 转到横屏 |
 
@@ -150,29 +149,25 @@ LocalPlayer/
 ├── Models/
 │   └── VideoItem.swift             视频条目（相对路径即稳定 ID）、排序枚举
 ├── Services/
-│   ├── LibraryStore.swift          Documents 扫描、导入、删除、建文件夹、装字幕
+│   ├── LibraryStore.swift          Documents 扫描、导入、删除、建文件夹
 │   ├── ProgressStore.swift         播放进度 / 最近观看（UserDefaults）
 │   ├── AppSettings.swift           全部设置项（UserDefaults 直读直写）
-│   ├── SubtitleParser.swift        SRT / ASS 解析 + UTF-8→GB18030→UTF-16 编码兜底
 │   ├── ThumbnailLoader.swift       首帧缩略图 + NSCache + 并发去重
-│   ├── WiFiUploadServer.swift      局域网 HTTP 上传（流式写盘，不是全读进内存）
 │   └── PhotoImporter.swift         相册导入，命名「20261111_001.mov」
 ├── Player/
-│   ├── PlayerModel.swift           AVPlayer 封装：时间轴 / 轨道 / 外挂字幕 / 倍速
+│   ├── PlayerModel.swift           AVPlayer 封装：时间轴 / 音轨 / 倍速 / 缓冲状态
 │   ├── VideoSurface.swift          AVPlayerLayer 的 SwiftUI 包装
 │   └── PiPManager.swift            画中画
 ├── Views/
 │   ├── LibraryView.swift           主页
 │   ├── Cards.swift                 视频卡片 / 列表行 / 继续观看卡片
-│   ├── PlayerScreen.swift          播放页（手势 + 控制层 + 字幕 + HUD）
-│   ├── UploadView.swift            Wi-Fi 传文件（地址 + 二维码 + 接收计数）
+│   ├── PlayerScreen.swift          播放页（手势 + 控制层 + HUD）
 │   └── SettingsView.swift          设置页
 └── Support/
     ├── Formatters.swift            体积 / 时间格式化、重名去重
     ├── Palette.swift               配色
     ├── SystemVolume.swift          系统音量（隐藏 MPVolumeView）
     ├── ScreenBrightness.swift      屏幕亮度
-    ├── QRCode.swift                二维码生成
     └── DebugSeed.swift             仅 Debug：生成示例视频（CI 截图 / 本地调试用）
 ```
 
@@ -193,9 +188,8 @@ LocalPlayer/
 - 搜索、六种排序、长按菜单（播放 / 删除）
 - 空状态引导
 
-**导入（三条通道）**
-- Wi-Fi：电脑浏览器打开 `http://192.168.x.x:8080`，拖拽多文件，带进度条；流式写盘，几 G 的文件不会爆内存
-- 文件 App：系统选择器，可多选，能选 SMB / 网盘挂载目录
+**导入（两条通道）**
+- 文件 App：系统选择器，可多选，能选 SMB / 网盘挂载目录；也能用访达 / iTunes 文件共享直接拖进 Documents
 - 相册：PhotosPicker 多选，命名 `日期_流水号`
 
 **播放页**
@@ -204,7 +198,6 @@ LocalPlayer/
 - 单击显隐控制栏，播放中 4 秒自动隐藏，暂停时常驻
 - 自定义进度条（可拖动，拖动时时间跟着变）
 - 倍速 0.5–2.0、音轨切换、画面比例、画中画、后台播放、锁屏继续出声
-- 字幕：外挂 SRT/ASS、内嵌轨道、字号 / 颜色 / 描边 / 背景透明度、双字幕
 - 断点续播、同目录自动连播、结束清除进度
 
 ---
@@ -230,15 +223,14 @@ LocalPlayer/
 1. **长按 2× 快进**：`onLongPressGesture(perform:onPressingChanged:)` 的松手回调在真机上才准，模拟器鼠标事件可能不触发。
 2. **双击 ±10 秒**：`SpatialTapGesture(count: 2)` 与单击手势并存，模拟器上看不出抢事件，真机上确认单击能正常显隐控制栏。
 3. **画中画**：`PiPManager.attach(layer:)` 在 `makeUIView` 里调用，此时 layer 可能还没进 window；PiP 按钮没反应就改成延迟 0.5 秒 attach。
-4. **本地网络权限**：第一次点「Wi-Fi 传文件」会弹权限框，拒绝后要去「设置 → 隐私 → 本地网络」手动打开。
-5. **相册导入**：`PhotoImporter` 的 `FileRepresentation` 用 `.movie`，个别 iCloud 未下载的原片可能返回 nil，届时换 `.mpeg4Movie` 或先 `startDownloadingCloudPhotos`。
+4. **相册导入**：`PhotoImporter` 的 `FileRepresentation` 用 `.movie`，个别 iCloud 未下载的原片可能返回 nil，届时换 `.mpeg4Movie` 或先 `startDownloadingCloudPhotos`。
 
 ---
 
 ## 五、两个有意的取舍
 
-**1. Wi-Fi 上传没有用 Swifter，保留自研的流式实现。**
-原计划用 `httpswift/swifter`，但它把请求体整体读进内存——传一个 4GB 的蓝光原盘会直接把 App 干掉。自己写的 `WiFiUploadServer` 边收边写盘，尾部留 2KB 用来剥离 multipart 边界。代价是只支持单文件、不支持断点续传，自用够了。
+**1. 砍掉了字幕和局域网传输。**
+v0.1 里这两块占了近三分之一复杂度：一个手写 HTTP multipart 服务（还要处理大文件流式写盘、边界剥离）、一个带 GB18030 编码兜底的 SRT/ASS 解析器加完整样式系统。实际用下来都不需要——电脑传文件直接走访达的文件共享或「文件」App 拖拽，字幕则没几部片子用得着。删完之后少 4 个文件、约 900 行，权限也少申请一个（本地网络）。
 
 **2. 没有引 mpv。**
 AVPlayer 播不了 MKV/AVI。这不是遗漏，是刻意的：PiP、AirPlay、HDR、杜比视界在 AVPlayer 上是零成本，在 mpv 上要重建整条 `AVSampleBufferDisplayLayer` 管线。
@@ -249,6 +241,5 @@ AVPlayer 播不了 MKV/AVI。这不是遗漏，是刻意的：PiP、AirPlay、HD
 ## 六、下一步可以加
 
 - 进度条长按帧预览（`AVAssetImageGenerator` 已有，加个节流就行）
-- 字幕时间轴微调（±0.5 秒），改 `SubtitleParser.cue(at:)` 的入参
 - 睡眠定时
 - iPhone 上锁定竖屏观看（`AppDelegate` 的 `supportedInterfaceOrientationsFor`）

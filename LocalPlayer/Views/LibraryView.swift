@@ -11,7 +11,6 @@ struct LibraryView: View {
     @State private var showFileImporter = false
     @State private var showPhotoPicker = false
     @State private var photoSelections: [PhotosPickerItem] = []
-    @State private var showUpload = false
     @State private var showSettings = false
     @State private var showNewFolder = false
     @State private var newFolderName = ""
@@ -75,9 +74,6 @@ struct LibraryView: View {
         .fullScreenCover(item: $playingItem) { item in
             PlayerScreen(item: item, queue: library.items)
         }
-        .sheet(isPresented: $showUpload) {
-            UploadView()
-        }
         .sheet(isPresented: $showSettings) {
             SettingsView()
         }
@@ -110,8 +106,6 @@ struct LibraryView: View {
                 if let first = library.subfolders.first { library.currentFolder = first }
             case "settings":
                 showSettings = true
-            case "upload":
-                showUpload = true
             default:
                 break
             }
@@ -166,9 +160,6 @@ struct LibraryView: View {
             }
             Button { showFileImporter = true } label: {
                 Label("从文件导入", systemImage: "folder")
-            }
-            Button { showUpload = true } label: {
-                Label("Wi-Fi 传文件", systemImage: "wifi")
             }
             Divider()
             Button { showNewFolder = true } label: {
@@ -438,34 +429,23 @@ struct LibraryView: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(Palette.text)
 
-            Text("用 Wi-Fi 从电脑传，或从相册 / 文件 App 导入\n视频只存在本机，不上传任何服务器")
+            Text("从相册或「文件」App 导入\n视频只存在本机，不联网、不上传")
                 .font(.system(size: 12.5))
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
                 .foregroundColor(Palette.tertiaryText)
 
             VStack(spacing: 8) {
-                Button {
-                    showUpload = true
-                } label: {
-                    Label("Wi-Fi 传文件", systemImage: "wifi")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background(Palette.accent, in: Capsule())
-                }
-
                 HStack(spacing: 8) {
                     Button {
                         showPhotoPicker = true
                     } label: {
                         Label("相册", systemImage: "photo.on.rectangle")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(Palette.text)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 38)
-                            .background(Palette.surfaceHigh, in: Capsule())
+                            .frame(height: 40)
+                            .background(Palette.accent, in: Capsule())
                     }
 
                     Button {
@@ -475,7 +455,7 @@ struct LibraryView: View {
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(Palette.text)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 38)
+                            .frame(height: 40)
                             .background(Palette.surfaceHigh, in: Capsule())
                     }
                 }

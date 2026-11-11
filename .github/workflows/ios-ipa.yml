@@ -89,9 +89,8 @@ jobs:
           # 播放页：-keepChrome 把控制栏钉住，否则 4 秒后自动隐藏拍不到
           snap 04-player "-screen player -keepChrome 1" 3
           # 横屏播放：这才是实际看片时的形态
-          snap 07-player-landscape "-screen player -keepChrome 1 -landscape 1" 4
+          snap 06-player-landscape "-screen player -keepChrome 1 -landscape 1" 4
           snap 05-settings "-screen settings"
-          snap 06-upload "-screen upload"
 
           ls -lh shots
 
