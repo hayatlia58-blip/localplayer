@@ -4,21 +4,19 @@
 
 视频只存在 App 的 `Documents` 目录里，不联网、不登录、不上传任何服务器。
 
-> 状态：源码完整（约 2600 行），设计文档见 `DESIGN.md`。
-> **尚未在 Xcode 里编译过**——本人没有 macOS 环境，所有代码是静态编写的，第一次编译大概率要修几个小问题（下文列了重点检查的地方）。
+> 状态：源码完整（约 3800 行，23 个 Swift 文件），设计文档见 `DESIGN.md`。
+> **尚未在真机 / 模拟器上编译过**——写代码的机器是 Windows，没有 Swift 工具链，只能做静态检查。
+> 因此仓库里带了两套「把它真正跑起来」的通道（见下），第一次编译的报错会被写进 `build.log`。
 
-## 零、想先看看长什么样
+## 零、三种「看到它」的方式
 
-打开 `preview/ui-preview.html`（手机浏览器也可以直接开）。这是按同一套配色、间距、字号还原的**静态原型**，五个页面都能点：
+| 方式 | 真实性 | 成本 | 适合 |
+|---|---|---|---|
+| **静态原型** `preview/ui-preview.html` | 只是布局还原，不能播视频 | 0 | 先确认配色、间距、交互手感 |
+| **CI 模拟器截图**（GitHub Actions） | **真实编译 + 真实 SwiftUI 渲染** | 0（Public 仓库免费） | 想看真机效果，但没有 Mac |
+| **云 Mac 亲手跑**（Xcode + 模拟器） | 完全真实，可以打断点、改代码 | $0.99 起 | 想自己调、自己改 |
 
-| 页面 | 能点的东西 |
-|---|---|
-| 主页 | 视频卡片（进播放页）、网格/列表切换、搜索过滤 |
-| 播放页 | 单击显隐控制栏（播放中 4 秒自动隐藏）、播放/暂停、点进度条跳转、±10 秒 HUD |
-| 设置 | 字号 / 颜色 / 描边 / 背景透明度实时改变下方字幕预览 |
-| Wi-Fi 传文件 | 点地址复制 |
-
-它是**用来确认手感的，不是真实运行的 App**——真正的程序要 Xcode 编译。
+静态原型里五个页面都能点（主页→播放页、网格/列表切换、搜索过滤、点进度条跳转、设置里改字号会实时改下方字幕预览、点 Wi-Fi 地址会复制）。它只能确认手感，**不能证明代码能编译**——后面两条才能。
 
 ---
 
@@ -28,7 +26,7 @@
 - macOS + Xcode 16 或更新（iOS 17 SDK）
 - iPhone / iPad 真机，或模拟器
 
-> **没有 Mac 也想装到 iPhone 上？** 跳到「方式 C」，全程在 Windows 上完成。
+> **没有 Mac？** 见「方式 B」（GitHub 编译，出截图和 ipa）或「方式 C」（租云 Mac，亲手跑 Xcode）。
 
 ### 方式 A：XcodeGen（有 Mac 时最快）
 
@@ -37,6 +35,12 @@ brew install xcodegen          # 只需一次
 cd LocalPlayer
 xcodegen generate
 open LocalPlayer.xcodeproj
+```
+
+或者一条命令直接编译 + 装进模拟器并带上示例视频：
+
+```bash
+bash scripts/dev.sh
 ```
 
 然后在 Xcode 里：
@@ -52,27 +56,34 @@ open LocalPlayer.xcodeproj
 4. 把本仓库的 `LocalPlayer/` 整个文件夹**拖进** Xcode（勾选 Create groups，不要勾 Copy items）
 5. 打开 Target → Info，把 `Info.plist` 的键值逐条搬进去（或直接删掉模板 Info.plist，改用本仓库的 `Info.plist`，并在 Build Settings → Packaging → Info.plist File 指向它）
 
-### 方式 C：没有 Mac，用 GitHub 编译 + Windows 签名（推荐给你）
+### 方式 B：没有 Mac，用 GitHub 编译（免费，能出真实截图）
 
 思路：**GitHub 的免费 macOS 机器负责编译，你自己的 Windows 负责签名安装。** 不需要 Mac，也不需要开发者账号。
+
+仓库里的 workflow（`.github/workflows/ios-ipa.yml`）跑两个任务：
+
+| 任务 | 产出 | 说明 |
+|---|---|---|
+| `simulator` | `simulator-screenshots`（5 张 PNG） | 真的把 App 装进 iOS 模拟器、启动、逐屏截图；同时上传 `xcodebuild-log` |
+| `ipa` | `LocalPlayer-unsigned-ipa` | Release 未签名 ipa，装机用 |
 
 **第 1 步：改 Bundle ID**
 打开 `project.yml`，把 `com.example.localplayer` 改成你自己的唯一标识，例如 `com.zhangsan.localplayer`。免费 Apple ID 每个 Bundle ID 只能挂一个 App，重名会签名失败。
 
-**第 2 步：推到 GitHub**
+**第 2 步：推到 GitHub**（本地仓库已经初始化并提交好了，只差一个远端）
+先在 GitHub 网页上新建一个空仓库（不要勾 README / .gitignore），然后：
 ```bash
 cd LocalPlayer
-git init
-git add .
-git commit -m "init"
-git branch -M main
 git remote add origin https://github.com/你的账号/localplayer.git
 git push -u origin main
 ```
 仓库设为 **Public**（Actions 免费不限时长）或 Private（每月 2000 分钟，够用）。
 
-**第 3 步：等 Actions 出包**
-进仓库 → Actions → `Build unsigned IPA` → Run workflow，约 3–5 分钟。完成后在该次运行的底部 **Artifacts** 下载 `LocalPlayer-unsigned-ipa.zip`，解压得到 `LocalPlayer-unsigned.ipa`。
+**第 3 步：等 Actions 出结果**
+进仓库 → Actions → 左侧选 `Build & Screenshot` → Run workflow，约 3–5 分钟。
+- 想看真实界面：下载 `simulator-screenshots`
+- 编译报错了：下载 `xcodebuild-log`，把 `error:` 那几行发我
+- 想装机：下载 `LocalPlayer-unsigned-ipa`
 
 **第 4 步：Windows 上装 Sideloadly**
 下载 <https://sideloadly.io> → 数据线连 iPhone → 把 ipa 拖进窗口 → 填 Apple ID → Start。
@@ -89,6 +100,26 @@ git push -u origin main
 - 免费账号最多同时装 **3 个**自签名 App，证书 7 天一续
 - 删掉 App 再装，`Documents` 里的视频**会一起没**——重要片子先在「文件」App 里留一份
 - 后台播放、画中画、锁屏控制**都正常**，这几项不需要付费账号的 entitlement
+
+### 方式 C：租一台云 Mac，亲手在 Xcode 里跑
+
+想自己拖界面、打断点、看真实动画，就必须有一台 macOS。目前最便宜的临时方案：
+
+| 平台 | 价格 | 说明 |
+|---|---|---|
+| **MacinCloud** | 首单 **$0.99 / 24 小时**；按需 $1/小时；包月 $25 起 | 选 Pay-As-You-Go，镜像自带 Xcode 和 iOS 模拟器 |
+| Scaleway Mac mini | €0.11–0.22/小时，包月 €75 起 | 更便宜，但开通要审核 |
+| AWS EC2 Mac | 约 $1.48/小时，**24 小时起租** | 不适合临时用 |
+
+登录进去之后，把整个 `LocalPlayer` 文件夹传上去（网页文件管理或 `git clone`），终端里一条命令：
+
+```bash
+bash scripts/dev.sh
+```
+
+它会依次做：装 XcodeGen → 生成工程 → 编译 → 启动模拟器 → 安装 → 生成 4 段示例视频并打开首页。成功后你就在模拟器里看到真东西了，可以直接改代码、Cmd+R 重跑。
+
+> 云 Mac 上插不了你的 iPhone，所以它的作用是**验证和调界面**，装机仍走「方式 B 出 ipa + Sideloadly 签名」那条链。
 
 ### 有 Mac 的话，装到手机上（自用）
 
@@ -131,8 +162,17 @@ LocalPlayer/
     ├── Palette.swift               配色
     ├── SystemVolume.swift          系统音量（隐藏 MPVolumeView）
     ├── ScreenBrightness.swift      屏幕亮度
-    └── QRCode.swift                二维码生成
+    ├── QRCode.swift                二维码生成
+    └── DebugSeed.swift             仅 Debug：生成示例视频（CI 截图 / 本地调试用）
 ```
+
+另外两处工程文件：
+
+| 文件 | 作用 |
+|---|---|
+| `LocalPlayer/Assets.xcassets` | AppIcon（1024 单尺寸）+ AccentColor `#5A8BFF` |
+| `scripts/dev.sh` | macOS 上一键：生成工程 → 编译 → 装模拟器 → 带示例数据启动 |
+| `.github/workflows/ios-ipa.yml` | CI：模拟器截图 + 未签名 ipa |
 
 ---
 
