@@ -161,7 +161,9 @@ struct RecentCard: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.black.opacity(0.55), in: Capsule())
-                        .padding(6)
+                        // 卡片底部有一条 3pt 的进度条，这里要留出空间，否则会贴在一起
+                        .padding(.horizontal, 6)
+                        .padding(.bottom, 10)
                 }
 
             Text(item.displayName)
