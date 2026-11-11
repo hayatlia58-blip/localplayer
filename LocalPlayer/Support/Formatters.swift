@@ -5,7 +5,8 @@ enum Fmt {
     static let bytes: ByteCountFormatter = {
         let f = ByteCountFormatter()
         f.countStyle = .file
-        f.allowedUnits = [.useMB, .useGB]
+        f.allowedUnits = [.useKB, .useMB, .useGB]
+        f.isAdaptive = true
         return f
     }()
 

@@ -42,19 +42,22 @@ enum DebugSeed {
                       top: spec.top, bottom: spec.bottom, seconds: 8)
         }
 
-        // 给第一个视频配一条外挂字幕，顺便验证字幕解析链路
+        // 给每段视频都配一条外挂字幕，这样不管打开哪个都能验证字幕链路
         let srt = """
         1
-        00:00:00,000 --> 00:00:03,000
+        00:00:00,000 --> 00:00:05,000
         这是一行测试字幕，用来检查字号和描边
 
         2
-        00:00:03,000 --> 00:00:07,000
+        00:00:05,000 --> 00:00:12,000
         第二句：English subtitle for layout check
 
         """
-        try? srt.write(to: folder.appendingPathComponent("海边的日落.srt"),
-                       atomically: true, encoding: .utf8)
+        for spec in specs {
+            let base = (spec.name as NSString).deletingPathExtension
+            try? srt.write(to: folder.appendingPathComponent("\(base).srt"),
+                           atomically: true, encoding: .utf8)
+        }
     }
 
     // MARK: - 生成一段纯色渐变的 mp4

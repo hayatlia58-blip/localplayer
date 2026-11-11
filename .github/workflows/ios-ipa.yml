@@ -72,20 +72,22 @@ jobs:
 
           mkdir -p shots
           snap () {
+            local name="$1"; local args="$2"; local delay="${3:-4}"
             xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
             sleep 1
-            xcrun simctl launch "$UDID" "$BUNDLE" $2 || true
-            sleep 4
-            xcrun simctl io "$UDID" screenshot "shots/$1.png"
+            xcrun simctl launch "$UDID" "$BUNDLE" $args || true
+            sleep "$delay"
+            xcrun simctl io "$UDID" screenshot "shots/$name.png"
           }
 
           # 空状态：先不塞示例数据
           snap 01-empty "-screen empty"
-          # 首页：首次启动时生成 4 段示例视频（含缩略图、一条外挂字幕）
+          # 首页：首次启动时生成 4 段示例视频（含缩略图、外挂字幕）
           snap 02-home "-screen home -seedDemo 1"
           # 进到「示例视频」文件夹，看真实的缩略图网格
           snap 03-folder "-screen folder"
-          snap 04-player "-screen player"
+          # 播放页必须在 4 秒内拍，否则控制栏会自动隐藏
+          snap 04-player "-screen player" 2
           snap 05-settings "-screen settings"
           snap 06-upload "-screen upload"
 
