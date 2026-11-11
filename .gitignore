@@ -1,0 +1,17 @@
+# Xcode
+LocalPlayer.xcodeproj/
+build/
+DerivedData/
+*.xcworkspace/
+xcuserdata/
+
+# 构建产物
+*.ipa
+Payload/
+*.dSYM.zip
+build.log
+release.log
+shots/
+
+# macOS
+.DS_Store
