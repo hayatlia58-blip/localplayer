@@ -56,6 +56,7 @@ private struct PlayerCore: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var progress: ProgressStore
     @EnvironmentObject private var settings: AppSettings
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @StateObject private var model: PlayerModel
     @StateObject private var pip = PiPManager()
@@ -391,7 +392,8 @@ private struct PlayerCore: View {
         }
         if let name = model.primarySubtitleName {
             let base = (name as NSString).deletingPathExtension
-            parts.append("字幕 \(base)")
+            // 外挂字幕常与视频同名，同名时不要重复显示标题
+            parts.append(base == item.displayName ? "外挂字幕" : "字幕 \(base)")
         }
         return parts.joined(separator: " · ")
     }
@@ -718,10 +720,19 @@ private struct PlayerCore: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, chromeVisible ? 118 : 30)
+            .padding(.bottom, subtitleBottomGap)
         }
         .allowsHitTesting(false)
         .animation(.easeInOut(duration: 0.2), value: chromeVisible)
+    }
+
+    /// 字幕到底边的距离。横屏时屏幕只有 400 点高，沿用竖屏的 118 会把字幕顶到画面正中，
+    /// 所以按纵向 size class 分开取值——始终比控制栏上沿高 12~16 点。
+    private var subtitleBottomGap: CGFloat {
+        if verticalSizeClass == .compact {
+            return chromeVisible ? 96 : 26
+        }
+        return chromeVisible ? 118 : 30
     }
 
     // MARK: - HUD 层

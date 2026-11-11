@@ -199,20 +199,29 @@ LocalPlayer/
 
 ---
 
-## 四、第一次编译时重点看这几处
+## 四、编译状态与已发现的问题
 
-我按最容易出问题排序，都是小改：
+**已经在 GitHub 的 macOS 机器上真实编译通过，并在 iPhone 模拟器里跑起来截图了。** 前几轮出现的编译错误全部是 API 名字写错，已修：
 
-1. **`PlayerScreen.swift` 的双击手势**
-   `.highPriorityGesture(SpatialTapGesture(count: 2))` 和 `.onTapGesture` 并存时，如果单双击互相抢，改成两个 `onTapGesture(count:)`，或把单击也换成 `SpatialTapGesture`。
-2. **`onLongPressGesture(perform:onPressingChanged:)`**
-   这里的 `perform` 在按住 0.35 秒后触发、`onPressingChanged(false)` 在松手时触发，用来做「长按 2×、松手恢复」。如果真机上松手没恢复速率，改用 `DragGesture(minimumDistance: 0)` + 自己计时。
-3. **`PhotoImporter` 的 `FileRepresentation`**
-   `MovieFile` 是标准 Apple 示例写法；如果 `loadTransferable` 一直返回 nil，把 `contentType: .movie` 换成 `.mpeg4Movie` 试试。
-4. **本地网络权限**
-   第一次点「Wi-Fi 传文件」系统会弹「允许查找并连接本地网络」，拒绝了就再也连不上，要去「设置 → 隐私 → 本地网络」手动打开。
-5. **画中画**
-   `PiPManager.attach(layer:)` 在 `makeUIView` 里调用，此时 layer 还没进 window，`AVPictureInPictureController` 可能创建失败。真机上如果 PiP 按钮没反应，改成延迟 0.5 秒再 attach。
+| 文件 | 报错 | 修法 |
+|---|---|---|
+| `Player/VideoSurface.swift` | `AVVideoGravity` 不存在 | 改 `AVLayerVideoGravity` |
+| `Services/PhotoImporter.swift` | 找不到 `PhotosPickerItem` | 补 `import SwiftUI`（PhotosUI 的 SwiftUI 支持是交叉覆盖模块） |
+| `Player/PlayerModel.swift` | `mediaSelectionGroup(for:)` 标签错 | 改 `forMediaCharacteristic:` |
+
+截图过程中发现并修掉的界面问题：
+
+1. **体积显示成 `0 MB`**——`ByteCountFormatter` 只放了 `.useMB/.useGB`，小文件被四舍五入成 0，已放开到 KB。
+2. **根目录空提示误导**——视频都在子文件夹里，根目录却写「此文件夹内没有视频」。
+3. **播放页右下角显示文件体积**——看片时这个数字没用，改成剩余时间 `−00:03`。
+
+### 还要在真机上确认的（模拟器测不出来）
+
+1. **长按 2× 快进**：`onLongPressGesture(perform:onPressingChanged:)` 的松手回调在真机上才准，模拟器鼠标事件可能不触发。
+2. **双击 ±10 秒**：`SpatialTapGesture(count: 2)` 与单击手势并存，模拟器上看不出抢事件，真机上确认单击能正常显隐控制栏。
+3. **画中画**：`PiPManager.attach(layer:)` 在 `makeUIView` 里调用，此时 layer 可能还没进 window；PiP 按钮没反应就改成延迟 0.5 秒 attach。
+4. **本地网络权限**：第一次点「Wi-Fi 传文件」会弹权限框，拒绝后要去「设置 → 隐私 → 本地网络」手动打开。
+5. **相册导入**：`PhotoImporter` 的 `FileRepresentation` 用 `.movie`，个别 iCloud 未下载的原片可能返回 nil，届时换 `.mpeg4Movie` 或先 `startDownloadingCloudPhotos`。
 
 ---
 
