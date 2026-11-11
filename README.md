@@ -64,8 +64,18 @@ bash scripts/dev.sh
 
 | 任务 | 产出 | 说明 |
 |---|---|---|
-| `simulator` | `simulator-screenshots`（5 张 PNG） | 真的把 App 装进 iOS 模拟器、启动、逐屏截图；同时上传 `xcodebuild-log` |
+| `simulator` | `simulator-screenshots`（7 张 PNG） | 真的把 App 装进 iOS 模拟器、启动、逐屏截图；同时上传 `xcodebuild-log` |
 | `ipa` | `LocalPlayer-unsigned-ipa` | Release 未签名 ipa，装机用 |
+
+截图覆盖：空状态 / 主页（含「继续观看」）/ 文件夹网格 / 播放页竖屏 / 播放页横屏 / 设置 / Wi-Fi 传文件。
+调试用的启动参数（只在 Debug 生效，写在 `Support/DebugSeed.swift`）：
+
+| 参数 | 作用 |
+|---|---|
+| `-screen home\|folder\|player\|settings\|upload\|empty` | 启动后直达某一屏 |
+| `-seedDemo 1` | 现场生成 4 段 8 秒示例视频 + 外挂字幕 + 两条播放记录 |
+| `-keepChrome 1` | 钉住播放控制栏（否则 4 秒后自动隐藏，截图拍不到） |
+| `-landscape 1` | 调 `requestGeometryUpdate` 真把 App 转到横屏 |
 
 **第 1 步：改 Bundle ID**
 打开 `project.yml`，把 `com.example.localplayer` 改成你自己的唯一标识，例如 `com.zhangsan.localplayer`。免费 Apple ID 每个 Bundle ID 只能挂一个 App，重名会签名失败。
