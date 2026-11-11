@@ -50,19 +50,40 @@ extension VideoItem {
     }
 }
 
-enum SortOption: String, CaseIterable, Identifiable {
-    case dateDesc, dateAsc, nameAsc, nameDesc, sizeDesc, sizeAsc
+/// 排序依据：⋯ 菜单里的三选一
+enum SortKey: String, CaseIterable, Identifiable {
+    case recent, name, added
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .dateDesc: return "最近添加"
-        case .dateAsc: return "最旧优先"
-        case .nameAsc: return "名称 A→Z"
-        case .nameDesc: return "名称 Z→A"
-        case .sizeDesc: return "文件最大"
-        case .sizeAsc: return "文件最小"
+        case .recent: return "最近播放"
+        case .name: return "名称"
+        case .added: return "添加日期"
+        }
+    }
+}
+
+/// 播放模式：单集循环 / 列表循环 / 播完暂停
+enum PlayMode: String, CaseIterable, Identifiable {
+    case loopAll, loopOne, stopAtEnd
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .loopAll: return "列表循环"
+        case .loopOne: return "单集循环"
+        case .stopAtEnd: return "播完暂停"
+        }
+    }
+
+    var shortTitle: String {
+        switch self {
+        case .loopAll: return "列表循环"
+        case .loopOne: return "单集循环"
+        case .stopAtEnd: return "播完暂停"
         }
     }
 }

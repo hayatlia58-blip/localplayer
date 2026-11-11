@@ -14,18 +14,39 @@ final class AppSettings: ObservableObject {
         objectWillChange.send()
     }
 
+    /// 断点续播
     var resumePlayback: Bool {
         get { read("resumePlayback", true) }
         set { write("resumePlayback", newValue) }
     }
 
+    /// 默认倍速。进入播放页时的起始值，播放页抽屉里可以临时改
     var defaultRate: Double {
         get { read("defaultRate", 1.0) }
         set { write("defaultRate", newValue) }
     }
 
-    var autoPlayNext: Bool {
-        get { read("autoPlayNext", true) }
-        set { write("autoPlayNext", newValue) }
+    /// 默认播放模式：播完暂停 / 单集循环 / 列表循环
+    var defaultPlayMode: PlayMode {
+        get {
+            let raw = read("defaultPlayMode", PlayMode.loopAll.rawValue)
+            return PlayMode(rawValue: raw) ?? .loopAll
+        }
+        set { write("defaultPlayMode", newValue.rawValue) }
+    }
+
+    /// 界面里的排序依据
+    var sortKey: SortKey {
+        get {
+            let raw = read("sortKey", SortKey.recent.rawValue)
+            return SortKey(rawValue: raw) ?? .recent
+        }
+        set { write("sortKey", newValue.rawValue) }
+    }
+
+    /// 升序（true）/ 降序（false）
+    var sortAscending: Bool {
+        get { read("sortAscending", false) }
+        set { write("sortAscending", newValue) }
     }
 }

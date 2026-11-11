@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>本地播放器 · 界面方案 v0.3</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0A0A0B;
+    --t1:#EBEBF0;
+    --t2:rgba(235,235,240,.58);
+    --t3:rgba(235,235,240,.34);
+    --blue:#0A84FF;
+    --line:rgba(255,255,255,.10);
+    --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",system-ui,sans-serif;
+  }
+  body{
+    background:#060607;
+    color:#EDEDF2;
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    padding:56px 24px 90px;
+  }
+  .page{max-width:760px;margin:0 auto}
+
+  /* ---------- 页头 ---------- */
+  header{border-bottom:1px solid rgba(255,255,255,.09);padding-bottom:26px;margin-bottom:14px}
+  header h1{font-size:24px;font-weight:600;letter-spacing:-.2px}
+  header .sub{font-size:14px;color:#9A9AA4;margin-top:9px;line-height:1.75}
+  header .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+  .chip{
+    font-size:11.5px;padding:5px 10px;border-radius:999px;
+    border:.5px solid rgba(255,255,255,.16);color:#B9B9C4;
+    background:rgba(255,255,255,.05)
+  }
+  .chip.on{border-color:rgba(10,132,255,.55);color:#5AB0FF;background:rgba(10,132,255,.12)}
+
+  /* ---------- 屏幕排布 ---------- */
+  .grid{
+    display:grid;grid-template-columns:321px 321px;justify-content:center;
+    gap:46px 34px;margin-top:44px;
+  }
+  @media (max-width:720px){
+    .grid{grid-template-columns:1fr;justify-items:center}
+    .device.land{transform:scale(.52);transform-origin:top center;margin-bottom:-146px}
+  }
+  figure{display:flex;flex-direction:column;align-items:center}
+  figure.wide{grid-column:1 / -1;justify-self:center}
+  figure.solo{grid-column:1 / -1;justify-self:center}
+
+  .device{
+    padding:7px;border-radius:46px;
+    background:linear-gradient(160deg,#2A2A30,#121214 55%,#26262C);
+    box-shadow:0 26px 54px rgba(0,0,0,.65),0 0 0 .5px rgba(255,255,255,.13);
+  }
+  .slot{width:307px;height:665px;border-radius:40px;overflow:hidden;position:relative}
+  .slot.land{width:630px;height:291px;border-radius:34px}
+  .device.land{border-radius:40px}
+
+  .phone{
+    width:393px;height:852px;background:var(--bg);position:relative;
+    transform:scale(.78);transform-origin:top left;
+    color:var(--t1);font-family:var(--sans);overflow:hidden;
+  }
+  .phone.land{
+    width:852px;height:393px;transform:scale(.7395);
+  }
+
+  figcaption{
+    font-size:13px;font-weight:600;margin-top:16px;letter-spacing:.1px;
+    display:flex;align-items:center;gap:8px
+  }
+  figcaption .n{
+    width:19px;height:19px;border-radius:6px;background:rgba(10,132,255,.18);
+    color:#5AB0FF;font-size:11px;display:grid;place-items:center;font-weight:600
+  }
+
+  .zones{width:100%;margin-top:12px;font-size:11.5px;line-height:1.62;color:#8E8E99}
+  .zones .z{display:flex;gap:7px;padding:5px 0;border-top:.5px solid rgba(255,255,255,.06)}
+  .zones .z:first-child{border-top:none}
+  .zones .k{color:#C9C9D3;font-weight:600;flex:0 0 62px}
+  .zones .v{flex:1}
+
+  /* ---------- 通用玻璃 ---------- */
+  .glass{
+    background:linear-gradient(180deg,rgba(255,255,255,.115),rgba(255,255,255,.05));
+    backdrop-filter:blur(22px) saturate(180%);
+    -webkit-backdrop-filter:blur(22px) saturate(180%);
+    border:.5px solid rgba(255,255,255,.17);
+    box-shadow:inset 0 .5px 0 rgba(255,255,255,.22),0 6px 18px rgba(0,0,0,.34);
+  }
+
+  /* ---------- 状态栏 ---------- */
+  .sb{
+    height:54px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 28px 6px;font-size:15px;font-weight:600;letter-spacing:.2px;position:relative;z-index:6
+  }
+  .sb .r{display:flex;align-items:center;gap:6px}
+  .sb .bars{display:flex;align-items:flex-end;gap:2px}
+  .sb .bars i{width:3px;background:#EBEBF0;border-radius:1px;display:block}
+  .sb .bars i:nth-child(1){height:4px}
+  .sb .bars i:nth-child(2){height:6px}
+  .sb .bars i:nth-child(3){height:8px}
+  .sb .bars i:nth-child(4){height:10px}
+  .sb .bat{width:22px;height:11px;border:.9px solid rgba(235,235,240,.5);border-radius:3px;position:relative}
+  .sb .bat::before{content:"";position:absolute;inset:1.4px;background:#EBEBF0;border-radius:1.4px}
+  .sb .bat::after{content:"";position:absolute;right:-3px;top:3px;width:1.6px;height:5px;background:rgba(235,235,240,.5);border-radius:0 1px 1px 0}
+
+  /* ---------- 资料库：顶栏 ---------- */
+  .topbar{
+    height:54px;padding:0 16px;display:flex;align-items:center;
+    position:relative;z-index:5
+  }
+  .topbar .side{display:flex;align-items:center;gap:8px}
+  .topbar .side.r{margin-left:auto}
+  .topbar .ttl{
+    position:absolute;left:0;right:0;text-align:center;font-size:17px;font-weight:600;
+    pointer-events:none;letter-spacing:-.1px
+  }
+  .cap{
+    height:36px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+    gap:5px;padding:0 12px;color:#EBEBF0
+  }
+  .cap.sq{width:36px;padding:0}
+  .cap.mid{width:50px;padding:0}
+  svg{display:block;flex:none}
+
+  /* ---------- 资料库：网格 ---------- */
+  .libgrid{
+    padding:14px 16px 40px;display:grid;grid-template-columns:1fr 1fr;gap:18px 12px;position:relative
+  }
+  .card .thumb{
+    aspect-ratio:16/9;border-radius:12px;overflow:hidden;position:relative;
+    background:linear-gradient(158deg,var(--a),var(--b));
+    box-shadow:0 4px 14px rgba(0,0,0,.4)
+  }
+  .card .thumb::before{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:32%;
+    background:linear-gradient(transparent,rgba(0,0,0,.34))
+  }
+  .card .thumb::after{
+    content:"";position:absolute;width:42%;aspect-ratio:1;border-radius:50%;
+    background:rgba(255,255,255,.20);filter:blur(1px);
+    left:18%;top:26%
+  }
+  .pbar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.22);z-index:2}
+  .pbar i{display:block;height:100%;background:var(--blue)}
+  .left-tag{
+    position:absolute;right:8px;bottom:9px;font-size:11px;font-weight:600;
+    color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);z-index:2;letter-spacing:.1px
+  }
+  .card h4{
+    font-size:15px;font-weight:600;margin-top:9px;line-height:1.3;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.1px
+  }
+  .card .meta{font-size:12.5px;color:var(--t2);margin-top:4px;font-variant-numeric:tabular-nums}
+
+  /* ---------- 菜单 ---------- */
+  .scape{position:absolute;inset:0;z-index:8;background:transparent}
+  .scape.dim{background:rgba(0,0,0,.38)}
+  /* 被长按的卡片浮到遮罩之上，保持清晰可辨 */
+  .card.sel{position:relative;z-index:9}
+  .card.sel .thumb{box-shadow:0 14px 34px rgba(0,0,0,.62),0 0 0 .5px rgba(255,255,255,.16)}
+  .menu{
+    position:absolute;width:200px;border-radius:20px;padding:4px;z-index:9;
+    background:linear-gradient(180deg,rgba(58,58,64,.64),rgba(30,30,34,.74));
+    backdrop-filter:blur(38px) saturate(170%);
+    -webkit-backdrop-filter:blur(38px) saturate(170%);
+    border:.5px solid rgba(255,255,255,.15);
+    box-shadow:0 20px 48px rgba(0,0,0,.58),inset 0 .5px 0 rgba(255,255,255,.2)
+  }
+  .mi{height:44px;display:flex;align-items:center;gap:11px;padding:0 13px;font-size:15.5px;letter-spacing:-.1px}
+  .mi .ic{width:20px;display:grid;place-items:center;color:#EBEBF0}
+  .mi.check .ic{color:#EBEBF0}
+  .mi.dim{color:#EBEBF0}
+  .mi .sp{width:20px;flex:none}
+  .msep{height:.5px;background:rgba(255,255,255,.12);margin:4px 12px}
+  .mgap{height:6px}
+  .mhint{font-size:11px;color:var(--t3);padding:2px 13px 5px 44px}
+
+  /* 长按菜单：锚定被长按的卡片，从卡片左下角长出 */
+  .menu.lp{width:174px;border-radius:18px;padding:3px;
+    background:linear-gradient(180deg,rgba(64,64,70,.80),rgba(27,27,31,.90));
+    backdrop-filter:blur(44px) saturate(180%);
+    -webkit-backdrop-filter:blur(44px) saturate(180%);
+    box-shadow:0 16px 40px rgba(0,0,0,.6),0 2px 8px rgba(0,0,0,.42),
+      inset 0 .5px 0 rgba(255,255,255,.24)
+  }
+  /* 头部：只有文件名，一行灰字，用来确认操作的是哪个 */
+  .lpname{
+    font-size:12.5px;font-weight:500;line-height:1.24;color:rgba(235,235,240,.70);
+    padding:9px 12px 7px;letter-spacing:.1px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  }
+  .menu.lp .mi{height:42px;gap:12px;padding:0 12px;font-size:15px}
+  .menu.lp .msep{margin:3px 10px}
+  .menu.lp .mi.danger,.menu.lp .mi.danger .ic{color:#FF453A}
+
+  /* 已看 / 选中：勾统一放缩略图右下角 */
+  .sdim{position:absolute;inset:0;background:rgba(0,0,0,.44);z-index:2}
+  .wmark{
+    position:absolute;right:8px;bottom:8px;width:22px;height:22px;border-radius:50%;
+    background:rgba(16,16,20,.52);border:.5px solid rgba(255,255,255,.42);color:#fff;
+    display:grid;place-items:center;z-index:3;
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)
+  }
+  .card.sel .wmark{background:#fff;border-color:#fff;color:#15161A;box-shadow:0 2px 10px rgba(0,0,0,.45)}
+
+  /* 图标白圆底（导入菜单） */
+  .badge{
+    width:26px;height:26px;border-radius:50%;background:#fff;color:#1C1C1E;
+    display:grid;place-items:center;flex:none
+  }
+
+  /* ---------- 播放页 ---------- */
+  .player{display:flex;flex-direction:column}
+  .stage{flex:1;display:grid;place-items:center;background:#000;position:relative;overflow:hidden}
+  .frame{
+    width:393px;aspect-ratio:16/9;position:relative;overflow:hidden;
+    background:linear-gradient(158deg,var(--a),var(--b))
+  }
+  .phone.land .frame{width:699px}
+  .phone.land .frame .sub{bottom:27%}
+  .frame::after{
+    content:"";position:absolute;width:38%;aspect-ratio:1;border-radius:50%;
+    background:rgba(255,255,255,.18);left:24%;top:28%
+  }
+  .frame .sub{
+    position:absolute;left:0;right:0;bottom:16%;text-align:center;font-size:17px;
+    color:#fff;text-shadow:0 1.5px 5px rgba(0,0,0,.9);letter-spacing:.3px
+  }
+  .rbtn{
+    width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff
+  }
+  .topctr{position:absolute;top:58px;left:20px;right:20px;display:flex;justify-content:space-between;z-index:4}
+  .phone.land .topctr{top:16px;left:16px;right:16px}
+
+  .bottom{
+    position:absolute;left:20px;right:20px;bottom:38px;z-index:4;
+    display:flex;flex-direction:column;gap:14px
+  }
+  .phone.land .bottom{left:16px;right:16px;bottom:16px;gap:0}
+
+  .timeline{display:flex;flex-direction:column;gap:7px}
+  .track{height:4px;border-radius:2px;background:rgba(255,255,255,.24);position:relative}
+  .track i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:#fff;display:block}
+  .times{display:flex;justify-content:space-between;font-size:12px;font-weight:500;
+    font-variant-numeric:tabular-nums;color:rgba(255,255,255,.9);letter-spacing:.2px}
+  .times .rest{color:rgba(255,255,255,.55)}
+
+  .prow{display:flex;align-items:center;gap:10px}
+  .transport{height:50px;border-radius:25px;display:flex;align-items:center;padding:0 6px;gap:2px}
+  .transport button{
+    width:46px;height:38px;border-radius:19px;border:none;background:transparent;
+    color:#fff;display:grid;place-items:center;font:inherit
+  }
+  .transport .mid{width:56px}
+  .prow .grow{flex:1}
+  .sbtn{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;color:#fff}
+
+  /* 横屏：只有进度条自己套一层胶囊，运输键与圆键沿用原来的玻璃 */
+  .landrow{display:flex;align-items:center;gap:12px}
+  .landrow .timeline{width:auto}
+  .landrow .tl-wrap{
+    flex:1;height:50px;border-radius:25px;padding:0 15px;
+    display:flex;flex-direction:column;gap:7px;justify-content:center
+  }
+  .landrow .sbtn{width:50px;height:50px;border-radius:25px}
+  .landrow .track{background:rgba(255,255,255,.28)}
+  .landrow .times .rest{color:rgba(255,255,255,.66)}
+
+  /* ---------- 抽屉 ---------- */
+  .panel{
+    position:absolute;top:12px;right:12px;bottom:12px;width:480px;border-radius:28px;
+    z-index:7;padding:22px 20px;
+    background:linear-gradient(180deg,rgba(56,56,62,.58),rgba(26,26,30,.70));
+    backdrop-filter:blur(46px) saturate(165%);
+    -webkit-backdrop-filter:blur(46px) saturate(165%);
+    border:.5px solid rgba(255,255,255,.15);
+    box-shadow:-18px 0 60px rgba(0,0,0,.5),inset 0 .5px 0 rgba(255,255,255,.2);
+    display:flex;flex-direction:column;overflow:hidden
+  }
+  .panel.port{width:264px}
+  .panel.port.auto{top:12px;bottom:auto}
+  .panel.port.auto .pfoot{margin-top:16px;padding-top:14px;border-top:.5px solid rgba(255,255,255,.10)}
+  /* 横屏抽屉：更矮，改用横向排布 */
+  .panel.landp{width:320px;padding:14px 14px}
+  .panel.landp.scroll{padding:14px 15px 0}
+  .pscroll{
+    flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+    scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 42px),transparent 100%);
+    mask-image:linear-gradient(to bottom,#000 calc(100% - 42px),transparent 100%)
+  }
+  .pscroll::-webkit-scrollbar{display:none}
+  .panel.landp .plabel{font-size:10px;letter-spacing:1.1px}
+  .panel.landp h3{font-size:17px;margin-top:4px}
+  .panel.landp .pinfo{font-size:10.5px;margin-top:0;line-height:1.55;text-align:right;white-space:nowrap}
+  .phead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .phead .pl{min-width:0;flex:1}
+  .panel.landp .pdiv{margin:12px 0 8px}
+  .qscroll{
+    flex:1;min-height:0;overflow:hidden;position:relative;
+    -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 34px),transparent);
+    mask-image:linear-gradient(to bottom,#000 calc(100% - 34px),transparent)
+  }
+  .panel.landp .qitem{padding:4px 0;gap:10px}
+  .panel.landp .qitem .qt{width:60px;height:34px;border-radius:6px}
+  .panel.landp .qitem .qi b{font-size:12.5px}
+  .panel.landp .qmark{width:14px;height:14px;right:2px;bottom:2px}
+  .panel.landp .qitem .qi span{font-size:10.5px;margin-top:1px}
+  .panel.landp .grp{font-size:10.5px;margin:10px 0 1px}
+  .panel.landp .grp:first-child{margin-top:0}
+  .panel.landp .row{height:39px;font-size:13.5px;gap:9px}
+  .panel.landp .row .ri{width:18px}
+  .panel.landp .row .rv{font-size:13px}
+  .panel.landp .stepper .sb2{width:25px;height:25px;border-radius:13px}
+  .panel.landp .stepper b{width:30px;font-size:13px}
+  .panel.landp .sw{width:38px;height:23px;border-radius:12px}
+  .panel.landp .sw::after{width:19px;height:19px}
+  .panel.landp .sw.on::after{left:17px}
+  .panel.landp .pfoot{padding:12px 0 14px;font-size:10.5px;line-height:1.5;margin-top:0;color:rgba(235,235,240,.46)}
+  .panel.landp.scroll .pfoot{flex:none;padding:9px 0 12px;margin-top:0;border-top:.5px solid rgba(255,255,255,.10)}
+  .panel .plabel{font-size:11px;font-weight:600;letter-spacing:1.3px;color:rgba(235,235,240,.45)}
+  .panel h3{font-size:22px;font-weight:600;margin-top:7px;line-height:1.22;letter-spacing:-.3px}
+  .panel .pinfo{font-size:12.5px;color:var(--t2);margin-top:8px;line-height:1.7;font-variant-numeric:tabular-nums}
+  .pdiv{height:.5px;background:rgba(255,255,255,.12);margin:16px 0}
+
+  .qitem{display:flex;align-items:center;gap:12px;padding:7px 0}
+  .qitem .qt{
+    width:80px;height:45px;border-radius:8px;flex:none;position:relative;overflow:hidden;
+    background:linear-gradient(158deg,var(--a),var(--b))
+  }
+  .qitem .qt::after{
+    content:"";position:absolute;width:40%;aspect-ratio:1;border-radius:50%;
+    background:rgba(255,255,255,.18);left:22%;top:26%
+  }
+  .qitem.cur .qt{box-shadow:0 0 0 2px var(--blue)}
+  .qmark{
+    position:absolute;right:3px;bottom:3px;width:16px;height:16px;border-radius:50%;
+    background:rgba(16,16,20,.55);border:.5px solid rgba(255,255,255,.42);color:#fff;
+    display:grid;place-items:center;z-index:2
+  }
+  .qitem .qi{flex:1;min-width:0}
+  .qitem .qi b{display:block;font-size:14.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .qitem.cur .qi b{font-weight:600}
+  .qitem .qi span{display:block;font-size:12px;color:var(--t3);margin-top:3px;font-variant-numeric:tabular-nums}
+
+  .pfoot{margin-top:auto;padding-top:18px;font-size:11.5px;line-height:1.65;color:rgba(235,235,240,.32)}
+  .grp{font-size:12px;font-weight:600;color:rgba(235,235,240,.45);letter-spacing:.6px;margin:16px 0 4px}
+  .row{height:46px;display:flex;align-items:center;gap:11px;font-size:15px}
+  .row .ri{width:22px;display:grid;place-items:center;color:rgba(235,235,240,.85)}
+  .row .rv{margin-left:auto;color:var(--t2);font-size:14.5px;display:flex;align-items:center;gap:4px}
+  .stepper{display:flex;align-items:center;gap:2px}
+  .stepper b{width:34px;text-align:center;font-size:14.5px;font-weight:600;color:#EBEBF0;font-variant-numeric:tabular-nums}
+  .stepper .sb2{
+    width:28px;height:28px;border-radius:14px;display:grid;place-items:center;
+    background:rgba(255,255,255,.10);border:.5px solid rgba(255,255,255,.14);color:#fff
+  }
+  .sw{width:44px;height:26px;border-radius:13px;background:rgba(255,255,255,.16);position:relative}
+  .sw::after{content:"";position:absolute;width:22px;height:22px;border-radius:50%;background:#fff;top:2px;left:2px;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  .sw.on{background:var(--blue)}
+  .sw.on::after{left:20px}
+
+  /* ---------- 规格 ---------- */
+  .specs{margin-top:78px;border-top:1px solid rgba(255,255,255,.09);padding-top:34px}
+  .specs h2{font-size:17px;font-weight:600;margin-bottom:6px}
+  .specs .lead{font-size:13px;color:#8E8E99;margin-bottom:22px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:.5px solid rgba(255,255,255,.07)}
+  th{font-weight:600;color:#9A9AA4;font-size:12px;letter-spacing:.3px}
+  td:first-child{color:#D6D6DE;white-space:nowrap}
+  td.num{font-variant-numeric:tabular-nums;color:#9A9AA4}
+  .sw-row{display:flex;gap:10px;margin:16px 0 26px;flex-wrap:wrap}
+  .swatch{width:118px}
+  .swatch .box{height:52px;border-radius:10px;border:.5px solid rgba(255,255,255,.12)}
+  .swatch .nm{font-size:11px;color:#C9C9D3;margin-top:7px;white-space:nowrap}
+  .swatch .hx{font-size:10px;color:#71717C;margin-top:2px;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,monospace}
+
+  .layers{display:flex;flex-direction:column;gap:0;margin-top:6px}
+  .layer{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:.5px solid rgba(255,255,255,.06)}
+  .layer .idx{width:22px;height:22px;border-radius:7px;background:rgba(255,255,255,.07);
+    display:grid;place-items:center;font-size:11px;color:#9A9AA4;font-weight:600;flex:none}
+  .layer b{font-size:13.5px;font-weight:600;flex:0 0 108px}
+  .layer span{font-size:12.5px;color:#8E8E99;line-height:1.55}
+
+  .todo{margin-top:64px;border-top:1px solid rgba(255,255,255,.09);padding-top:30px}
+  .todo h2{font-size:17px;font-weight:600;margin-bottom:18px}
+  .todo ol{list-style:none;counter-reset:t}
+  .todo li{
+    counter-increment:t;position:relative;padding:11px 0 11px 34px;font-size:13.5px;
+    border-bottom:.5px solid rgba(255,255,255,.06);line-height:1.6;color:#C9C9D3
+  }
+  .todo li::before{
+    content:counter(t);position:absolute;left:0;top:11px;width:21px;height:21px;border-radius:7px;
+    background:rgba(10,132,255,.14);color:#5AB0FF;font-size:11px;font-weight:600;
+    display:grid;place-items:center
+  }
+  .todo li em{font-style:normal;color:#71717C}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>本地播放器 · 界面方案 v0.3</h1>
+    <div class="sub">
+      按 Outplayer 的界面语言复刻，iOS 26 原生玻璃。<br>
+      已按你的决定砍掉：搜索、列表视图、多选、音频设置、画质音效开关、Wi-Fi 传输、字幕、画中画。
+    </div>
+    <div class="chips">
+      <span class="chip on">iOS 26 glassEffect</span>
+      <span class="chip on">系统蓝 #0A84FF</span>
+      <span class="chip on">仅网格</span>
+      <span class="chip on">点屏唤出</span>
+      <span class="chip on">无画中画</span>
+      <span class="chip">按最近播放排序</span>
+      <span class="chip">两个右侧抽屉（竖/横）</span>
+    </div>
+  </header>
+
+  <div class="grid" id="stage"></div>
+
+  <!-- 规格 -->
+  <section class="specs">
+    <h2>尺寸与材质</h2>
+    <div class="lead">全部为逻辑点（pt）。iPhone 16 竖屏 393×852 为基准。</div>
+
+    <table>
+      <tr><th>元素</th><th>规格</th><th class="num">数值</th></tr>
+      <tr><td>顶栏</td><td>高度 / 左右内边距</td><td class="num">54 / 16</td></tr>
+      <tr><td>胶囊按钮</td><td>高 / 圆角 / 图标</td><td class="num">36 / 18 / 17</td></tr>
+      <tr><td>胶囊间距</td><td>按钮之间</td><td class="num">8</td></tr>
+      <tr><td>网格</td><td>左右 / 列间距 / 行间距</td><td class="num">16 / 12 / 18</td></tr>
+      <tr><td>卡片缩略图</td><td>16:9 / 圆角</td><td class="num">174.5×98 / 12</td></tr>
+      <tr><td>卡片标题</td><td>字号 / 字重 / 上间距</td><td class="num">15 / 600 / 9</td></tr>
+      <tr><td>卡片元信息</td><td>字号 / 颜色</td><td class="num">12.5 / 白 58%</td></tr>
+      <tr><td>进度条</td><td>高度 / 颜色</td><td class="num">3 / 系统蓝</td></tr>
+      <tr><td>播放页边距</td><td>左右 / 距底部</td><td class="num">20 / 38</td></tr>
+      <tr><td>运输胶囊</td><td>高 / 圆角 / 单键宽</td><td class="num">50 / 25 / 46</td></tr>
+      <tr><td>圆形功能键</td><td>直径</td><td class="num">38</td></tr>
+      <tr><td>抽屉面板</td><td>宽（竖 / 横）· 圆角 · 距边</td><td class="num">264 / 320 · 28 · 12</td></tr>
+      <tr><td>横屏抽屉行高</td><td>队列项 / 设置项</td><td class="num">42 / 39</td></tr>
+      <tr><td>弹窗菜单</td><td>宽 · 圆角 · 行高 · 图标列</td><td class="num">200 · 20 · 44 · 20</td></tr>
+      <tr><td>抽屉行高</td><td>设置项 / 队列项（竖屏）</td><td class="num">46 / 60</td></tr>
+            <tr><td>横屏抽屉高度</td><td>列表 / 设置（单列可滚）</td><td class="num">369 / 369</td></tr>
+    </table>
+
+    <div class="sw-row" style="margin-top:26px">
+      <div class="swatch"><div class="box" style="background:#0A0A0B"></div><div class="nm">背景</div><div class="hx">#0A0A0B</div></div>
+      <div class="swatch"><div class="box" style="background:#0A84FF"></div><div class="nm">强调色</div><div class="hx">#0A84FF</div></div>
+      <div class="swatch"><div class="box" style="background:#EBEBF0"></div><div class="nm">主文字</div><div class="hx">#EBEBF0</div></div>
+      <div class="swatch"><div class="box" style="background:#8E8E99"></div><div class="nm">次文字</div><div class="hx">白 58%</div></div>
+      <div class="swatch"><div class="box" style="background:linear-gradient(180deg,rgba(255,255,255,.115),rgba(255,255,255,.05))"></div><div class="nm">玻璃底</div><div class="hx">白 11→5%</div></div>
+    </div>
+
+    <h2 style="margin-top:8px">玻璃的四层</h2>
+    <div class="lead">少一层就会变成"半透明灰块"，这是复刻像不像的关键。</div>
+    <div class="layers">
+      <div class="layer"><div class="idx">1</div><b>背景内容</b><span>视频画面或缩略图墙。没有内容在背后，材质只会是一片死灰。</span></div>
+      <div class="layer"><div class="idx">2</div><b>材质</b><span>iOS 26 的 <code>glassEffect</code>：实时采样 + 高斯模糊 + 提饱和。胶囊用 regular，面板用更厚的层。</span></div>
+      <div class="layer"><div class="idx">3</div><b>染色</b><span>叠 30~45% 的黑。Outplayer 明显比系统默认暗一档，不加这层会偏亮发灰。</span></div>
+      <div class="layer"><div class="idx">4</div><b>高光边</b><span>0.5~1pt 描边，上白 22% 渐变到下白 5%，外加内侧 1px 白线。高级感全在这两条线。</span></div>
+    </div>
+  </section>
+
+  <!-- 待确认 -->
+  <section class="todo">
+    <h2>还需要你确认的</h2>
+    <ol>
+      <li>导入菜单两项的顺序：现在按你说的「相册在上、文件在下」。<em>—— 还是文件在前？</em></li>
+      <li>顶栏左侧：根目录只放齿轮；进到文件夹后齿轮左边出现「返回上级」胶囊。<em>—— 这样可以吗？</em></li>
+      <li>两个横屏抽屉从 400 收到 320，约占画面右侧 46%，左侧能多露一点视频。<em>—— 还要更窄吗？</em></li>
+      <li>三个弹窗统一缩到宽 200、行高 44。<em>—— 会不会偏小、手指不好点？</em></li>
+      <li>「已看」的勾放在缩略图右下角；长按选中时同一位置变成实心白底勾。</li>
+      <li>设置抽屉：竖屏装得下就按内容算高度，横屏装不下才滚；底部说明固定在面板底。<em>—— 这样行吗？</em></li>
+      <li>卡片元信息用「45:25 · 310.9 MB」，时长在前。Outplayer 就是这个顺序。</li>
+      <li>竖屏播放页采用「两行」布局（进度条一行、按钮一行）。<em>—— 要不要干脆只留按钮、把进度条省掉？</em></li>
+      <li>设置抽屉的「界面」组：自动隐藏时长、屏幕常亮、锁定当前方向、防误触。<em>—— 这四个都要吗？</em></li>
+      <li>播放信息（分辨率 / 码率 / 体积）放在列表抽屉标题区。<em>—— 还是挪进设置抽屉？</em></li>
+    </ol>
+  </section>
+
+</div>
+
+<script>
+const I = {
+  gear:'<circle cx="12" cy="12" r="7.4"/><circle cx="12" cy="12" r="2.9"/><path d="M12 1.9v2.7M12 19.4v2.7M1.9 12h2.7M19.4 12h2.7M4.85 4.85l1.9 1.9M17.25 17.25l1.9 1.9M19.15 4.85l-1.9 1.9M6.75 17.25l-1.9 1.9"/>',
+  imp:'<path d="M12 3.2v10.2"/><path d="M8.2 9.6L12 13.4l3.8-3.8"/><path d="M4.5 15v3.3a2.2 2.2 0 0 0 2.2 2.2h10.6a2.2 2.2 0 0 0 2.2-2.2V15"/>',
+  dots:'<circle cx="5.6" cy="12" r="1.55" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.55" fill="currentColor" stroke="none"/><circle cx="18.4" cy="12" r="1.55" fill="currentColor" stroke="none"/>',
+  back:'<path d="M15 4.5L7.5 12 15 19.5"/>',
+  chev:'<path d="M6.5 9.5L12 15l5.5-5.5"/>',
+  play:'<path d="M8.4 5.1l10.4 6.9-10.4 6.9z" fill="currentColor" stroke="none"/>',
+  pause:'<rect x="7.4" y="5" width="3.3" height="14" rx="1.2" fill="currentColor" stroke="none"/><rect x="13.3" y="5" width="3.3" height="14" rx="1.2" fill="currentColor" stroke="none"/>',
+  close:'<path d="M6.4 6.4l11.2 11.2M17.6 6.4L6.4 17.6"/>',
+  cam:'<rect x="2.8" y="6" width="18.4" height="14" rx="3.4"/><circle cx="12" cy="13" r="3.5"/><path d="M8.6 6l1.3-2.2h4.2L15.4 6"/>',
+  list:'<path d="M8.6 6.4h11.8M8.6 12h11.8M8.6 17.6h11.8"/><circle cx="4.4" cy="6.4" r="1.35" fill="currentColor" stroke="none"/><circle cx="4.4" cy="12" r="1.35" fill="currentColor" stroke="none"/><circle cx="4.4" cy="17.6" r="1.35" fill="currentColor" stroke="none"/>',
+  sliders:'<path d="M3.4 8.2h3M11.7 8.2h6.9M3.4 15.8h9.7M18.1 15.8h2.5"/><circle cx="9" cy="8.2" r="2.7"/><circle cx="15.4" cy="15.8" r="2.7"/>',
+  folder:'<path d="M3.4 7.2a2.4 2.4 0 0 1 2.4-2.4h3.3l2 2.2h7.1a2.4 2.4 0 0 1 2.4 2.4v7.9a2.4 2.4 0 0 1-2.4 2.4H5.8a2.4 2.4 0 0 1-2.4-2.4z"/>',
+  folderPlus:'<path d="M3.4 7.2a2.4 2.4 0 0 1 2.4-2.4h3.3l2 2.2h7.1a2.4 2.4 0 0 1 2.4 2.4v7.9a2.4 2.4 0 0 1-2.4 2.4H5.8a2.4 2.4 0 0 1-2.4-2.4z"/><path d="M12 11v5M9.5 13.5h5"/>',
+  photo:'<rect x="3" y="5" width="18" height="14" rx="3.2"/><circle cx="8.6" cy="10.2" r="1.7"/><path d="M4.4 17.4l4.6-4.2 3.6 3.2 2.7-2.3 4.3 3.7"/>',
+  check:'<path d="M5 12.6l4.6 4.6L19 7.4"/>',
+  clock:'<circle cx="12" cy="12" r="8.6"/><path d="M12 7.2V12l3.2 1.9"/>',
+  speed:'<circle cx="12" cy="12" r="8.6"/><path d="M12 12l4.2-4.2"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>',
+  repeat:'<path d="M4.9 9.6a5.1 5.1 0 0 1 5.1-5.1h7.2"/><path d="M15 2.2l2.4 2.3-2.4 2.3"/><path d="M19.1 14.4a5.1 5.1 0 0 1-5.1 5.1H6.8"/><path d="M9 21.8l-2.4-2.3 2.4-2.3"/>',
+  aspect:'<rect x="2.6" y="4.4" width="18.8" height="15.2" rx="2.6"/><rect x="6.2" y="8" width="11.6" height="8" rx="1.4" stroke-dasharray="2.2 2.2"/>',
+  lock:'<rect x="4.8" y="10.4" width="14.4" height="9.6" rx="2.6"/><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6"/>',
+  info:'<circle cx="12" cy="12" r="8.6"/><path d="M12 11.2v5"/><circle cx="12" cy="7.9" r="1.05" fill="currentColor" stroke="none"/>',
+  b10:'<circle cx="12" cy="12" r="7.5" stroke-dasharray="37.6 9.6" transform="rotate(233 12 12)"/><path d="M8.2 4.9L12 2.9v4z" fill="currentColor" stroke="none"/><text x="12" y="15.7" text-anchor="middle" font-size="8.8" font-weight="700" fill="currentColor" stroke="none">10</text>',
+  f10:'<circle cx="12" cy="12" r="7.5" stroke-dasharray="37.6 9.6" transform="rotate(233 12 12)"/><path d="M15.8 4.9L12 2.9v4z" fill="currentColor" stroke="none"/><text x="12" y="15.7" text-anchor="middle" font-size="8.8" font-weight="700" fill="currentColor" stroke="none">10</text>',
+  sun:'<circle cx="12" cy="12" r="4.1"/><path d="M12 2.7v2.2M12 19.1v2.2M2.7 12h2.2M19.1 12h2.2M5.5 5.5l1.6 1.6M16.9 16.9l1.6 1.6M18.5 5.5l-1.6 1.6M7.1 16.9l-1.6 1.6"/>',
+  shield:'<path d="M12 2.9l7.2 3v6.2c0 4.4-3 7.6-7.2 9-4.2-1.4-7.2-4.6-7.2-9V5.9z"/><path d="M9.2 12.2l2.1 2.1 3.7-3.9"/>',
+  checkCircle:'<circle cx="12" cy="12" r="8.6"/><path d="M8.3 12.3l2.6 2.6 4.8-5.3"/>',
+  rename:'<path d="M6.2 18.8l3.7-9.9 3.7 9.9"/><path d="M7.6 15.4h4.6"/><path d="M16.6 6.2v12"/>',
+  trash:'<path d="M4.6 6.9h14.8"/><path d="M9.4 6.9V4.9a1.5 1.5 0 0 1 1.5-1.5h2.2a1.5 1.5 0 0 1 1.5 1.5v2"/><path d="M6.7 6.9l.9 12a1.9 1.9 0 0 0 1.9 1.7h5a1.9 1.9 0 0 0 1.9-1.7l.9-12"/><path d="M10.5 10.7v6.1M13.5 10.7v6.1"/>',
+  minus:'<path d="M6 12h12"/>',
+  plus:'<path d="M12 6v12M6 12h12"/>'
+};
+function ico(n, s=18, w=1.85){
+  return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${I[n]}</svg>`;
+}
+
+const sb = `
+  <div class="sb">
+    <span>9:41</span>
+    <span class="r">
+      <span class="bars"><i></i><i></i><i></i><i></i></span>
+      <span class="bat"></span>
+    </span>
+  </div>`;
+
+const CARDS = [
+  { n:'谷雨 第7集',  m:'45:25 · 310.9 MB', a:'#e8a06a', b:'#2a2468', p:0,   left:'' },
+  { n:'谷雨 第8集',  m:'45:25 · 274.0 MB', a:'#4a6a8a', b:'#141824', p:.62, left:'2:22 Left' },
+  { n:'谷雨 第9集',  m:'45:25 · 274.4 MB', a:'#3a2a26', b:'#0d0d12', p:.14, left:'' },
+  { n:'谷雨 第10集', m:'45:25 · 279.1 MB', a:'#7a6a3a', b:'#242018', p:0,   left:'', watched:true },
+  { n:'谷雨 第11集', m:'45:25 · 294.9 MB', a:'#8a7a5a', b:'#2c2418', p:0,   left:'' },
+  { n:'谷雨 第12集', m:'45:25 · 256.7 MB', a:'#2a3a4a', b:'#101418', p:.07, left:'' },
+  { n:'谷雨 第13集', m:'45:25 · 268.3 MB', a:'#5a3a4a', b:'#181018', p:0,   left:'' }
+];
+
+function card(c, sel){
+  const bar = (c.p > 0 && !c.watched)
+    ? `<div class="pbar"><i style="width:${c.p*100}%"></i></div>` : '';
+  const tag = c.left ? `<div class="left-tag">${c.left}</div>` : '';
+  const mark = (c.watched || sel) ? `<div class="wmark">${ico('check',13,2.8)}</div>` : '';
+  const dim = sel ? '<div class="sdim"></div>' : '';
+  return `<div class="card ${sel?'sel':''}">
+    <div class="thumb" style="--a:${c.a};--b:${c.b}">${bar}${tag}${dim}${mark}</div>
+    <h4>${c.n}</h4>
+    <div class="meta">${c.m}</div>
+  </div>`;
+}
+
+function libScreen(extra, selIndex){
+  return `<div class="phone">
+    ${sb}
+    <div class="topbar">
+      <div class="side">
+        <button class="cap sq glass">${ico('gear',17)}</button>
+      </div>
+      <div class="ttl">资料库</div>
+      <div class="side r">
+        <button class="cap sq glass">${ico('imp',17)}</button>
+        <button class="cap sq glass">${ico('dots',17)}</button>
+      </div>
+    </div>
+    <div class="libgrid">${CARDS.map((c,i)=>card(c, i===selIndex)).join('')}</div>
+    ${extra||''}
+  </div>`;
+}
+
+const MENU_MORE = `
+  <div class="scape"></div>
+  <div class="menu" style="right:16px;top:108px">
+    <div class="mi"><span class="ic">${ico('folderPlus',20)}</span>新建文件夹</div>
+    <div class="msep"></div>
+    <div class="mi check"><span class="ic">${ico('check',18,2.2)}</span>最近播放</div>
+    <div class="mi"><span class="sp"></span>名称</div>
+    <div class="mi"><span class="sp"></span>添加日期</div>
+    <div class="msep"></div>
+    <div class="mi"><span class="sp"></span>升序排列</div>
+    <div class="mi"><span class="sp"></span>刷新缩略图</div>
+    <div style="height:4px"></div>
+  </div>`;
+
+const MENU_LONGPRESS = `
+  <div class="scape dim"></div>
+  <div class="menu lp" style="left:16px;top:276px">
+    <div class="lpname">谷雨 第7集.mp4</div>
+    <div class="msep"></div>
+    <div class="mi"><span class="ic">${ico('checkCircle',19)}</span>标记为已看</div>
+    <div class="mi"><span class="ic">${ico('rename',19)}</span>重命名</div>
+    <div class="msep"></div>
+    <div class="mi danger"><span class="ic">${ico('trash',19)}</span>删除</div>
+  </div>`;
+
+const MENU_IMPORT = `
+  <div class="scape"></div>
+  <div class="menu" style="right:16px;top:108px;padding:4px 5px">
+    <div class="mi"><span class="badge">${ico('photo',17,2)}</span>从相册导入</div>
+    <div class="mi"><span class="badge">${ico('folder',17,2)}</span>从文件导入</div>
+  </div>`;
+
+function playerScreenLand(withDrawer, noSub){
+  const stage = `
+    <div class="stage">
+      <div class="frame" style="--a:#c08a52;--b:#5a3a24">
+        ${noSub ? '' : '<div class="sub">还是不对劲 你说呢</div>'}
+      </div>
+    </div>`;
+  const top = `
+    <div class="topctr">
+      <button class="rbtn glass">${ico('close',17)}</button>
+      <button class="rbtn glass">${ico('cam',17)}</button>
+    </div>`;
+  const bottom = `
+    <div class="bottom">
+      <div class="landrow">
+        <div class="transport glass">
+          <button>${ico('b10',21)}</button>
+          <button class="mid">${ico('pause',21)}</button>
+          <button>${ico('f10',21)}</button>
+        </div>
+        <div class="tl-wrap glass">
+          <div class="track"><i style="width:62%"></i></div>
+          <div class="times"><span>28:17</span><span class="rest">-17:07</span></div>
+        </div>
+        <button class="sbtn glass">${ico('list',21)}</button>
+        <button class="sbtn glass">${ico('sliders',21)}</button>
+      </div>
+    </div>`;
+  // 抽屉展开时整层控件收起，画面与抽屉互不遮挡
+  const chrome = withDrawer ? '' : top + bottom;
+  return `<div class="phone land player">${stage}${chrome}${withDrawer||''}</div>`;
+}
+
+const QUEUE = [
+  { n:'谷雨 第7集',  t:'45:25', a:'#e8a06a', b:'#2a2468', seen:true },
+  { n:'谷雨 第8集',  t:'45:25', a:'#4a6a8a', b:'#141824', cur:true },
+  { n:'谷雨 第9集',  t:'45:25', a:'#3a2a26', b:'#0d0d12' },
+  { n:'谷雨 第10集', t:'45:25', a:'#7a6a3a', b:'#242018', seen:true },
+  { n:'谷雨 第11集', t:'45:25', a:'#8a7a5a', b:'#2c2418' },
+  { n:'谷雨 第12集', t:'45:25', a:'#2a3a4a', b:'#101418' },
+  { n:'谷雨 第13集', t:'45:25', a:'#5a3a4a', b:'#181018' }
+];
+
+const CHEV = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5">${I.chev}</svg>`;
+
+const PANEL_LIST = `
+  <div class="panel port auto">
+    <div class="plabel">正在播放</div>
+    <h3>谷雨 第8集</h3>
+    <div class="pinfo">1920×1080 · 1.8 Mbps<br>274.0 MB · 第 2 个 / 共 7 个</div>
+    <div class="pdiv"></div>
+    ${QUEUE.map(q=>`
+      <div class="qitem ${q.cur?'cur':''}">
+        <div class="qt" style="--a:${q.a};--b:${q.b}">${q.seen?`<span class="qmark">${ico('check',9,3.2)}</span>`:''}</div>
+        <div class="qi"><b>${q.n}</b><span>${q.t}</span></div>
+      </div>`).join('')}
+  </div>`;
+
+const PANEL_SET = `
+  <div class="panel port auto">
+    <div class="grp" style="margin-top:0">播放</div>
+    <div class="row">
+      <span class="ri">${ico('speed',19)}</span>速度
+      <span class="rv"><span class="stepper">
+        <span class="sb2">${ico('minus',14,2.2)}</span><b>1×</b><span class="sb2">${ico('plus',14,2.2)}</span>
+      </span></span>
+    </div>
+    <div class="row">
+      <span class="ri">${ico('repeat',19)}</span>模式
+      <span class="rv">列表循环${CHEV}</span>
+    </div>
+
+    <div class="grp">画面</div>
+    <div class="row">
+      <span class="ri">${ico('aspect',19)}</span>比例
+      <span class="rv">适应屏幕${CHEV}</span>
+    </div>
+
+    <div class="grp">界面</div>
+    <div class="row"><span class="ri">${ico('clock',19)}</span>控件自动隐藏<span class="rv">4 秒${CHEV}</span></div>
+    <div class="row"><span class="ri">${ico('sun',19)}</span>播放时屏幕常亮<span class="rv"><span class="sw on"></span></span></div>
+    <div class="row"><span class="ri">${ico('lock',19)}</span>锁定当前方向<span class="rv"><span class="sw"></span></span></div>
+    <div class="row"><span class="ri">${ico('shield',19)}</span>防误触<span class="rv"><span class="sw"></span></span></div>
+    <div class="pfoot">速度与模式只在本次播放生效，退出播放页后恢复默认值</div>
+  </div>`;
+
+/* ---------- 横屏抽屉 ---------- */
+const PANEL_LIST_LAND = `
+  <div class="panel landp">
+    <div class="phead">
+      <div class="pl">
+        <div class="plabel">正在播放</div>
+        <h3>谷雨 第8集</h3>
+      </div>
+      <div class="pinfo">1920×1080 · 1.8 Mbps<br>274.0 MB · 第 2 个 / 共 7 个</div>
+    </div>
+    <div class="pdiv"></div>
+    <div class="qscroll">
+      ${QUEUE.map(q=>`
+        <div class="qitem ${q.cur?'cur':''}">
+          <div class="qt" style="--a:${q.a};--b:${q.b}">${q.seen?`<span class="qmark">${ico('check',9,3.2)}</span>`:''}</div>
+          <div class="qi"><b>${q.n}</b><span>${q.t}</span></div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+
+const PANEL_SET_LAND = `
+  <div class="panel landp scroll">
+    <div class="pscroll">
+      <div class="grp" style="margin-top:0">播放</div>
+      <div class="row">
+        <span class="ri">${ico('speed',19)}</span>速度
+        <span class="rv"><span class="stepper">
+          <span class="sb2">${ico('minus',14,2.2)}</span><b>1×</b><span class="sb2">${ico('plus',14,2.2)}</span>
+        </span></span>
+      </div>
+      <div class="row">
+        <span class="ri">${ico('repeat',19)}</span>模式
+        <span class="rv">列表循环${CHEV}</span>
+      </div>
+
+      <div class="grp">画面</div>
+      <div class="row">
+        <span class="ri">${ico('aspect',19)}</span>比例
+        <span class="rv">适应屏幕${CHEV}</span>
+      </div>
+
+      <div class="grp">界面</div>
+      <div class="row"><span class="ri">${ico('clock',19)}</span>控件自动隐藏<span class="rv">4 秒${CHEV}</span></div>
+      <div class="row"><span class="ri">${ico('sun',19)}</span>播放时屏幕常亮<span class="rv"><span class="sw on"></span></span></div>
+      <div class="row"><span class="ri">${ico('lock',19)}</span>锁定当前方向<span class="rv"><span class="sw"></span></span></div>
+      <div class="row"><span class="ri">${ico('shield',19)}</span>防误触<span class="rv"><span class="sw"></span></span></div>
+    </div>
+    <div class="pfoot">速度与模式只在本次播放生效，退出播放页后恢复默认值</div>
+  </div>`;
+
+function playerScreenPortrait(panel){
+  const stage = `
+    <div class="stage" style="background:#000">
+      <div class="frame" style="--a:#c08a52;--b:#5a3a24">
+        <div class="sub" style="bottom:14%">还是不对劲 你说呢</div>
+      </div>
+    </div>`;
+  const top = `
+    <div class="topctr">
+      <button class="rbtn glass">${ico('close',17)}</button>
+      <button class="rbtn glass">${ico('cam',17)}</button>
+    </div>`;
+  const bottom = `
+    <div class="bottom">
+      <div class="timeline">
+        <div class="track"><i style="width:62%"></i></div>
+        <div class="times"><span>28:17</span><span class="rest">-17:07</span></div>
+      </div>
+      <div class="prow">
+        <div class="transport glass">
+          <button>${ico('b10',21)}</button>
+          <button class="mid">${ico('pause',21)}</button>
+          <button>${ico('f10',21)}</button>
+        </div>
+        <div class="grow"></div>
+        <button class="sbtn glass">${ico('list',19)}</button>
+        <button class="sbtn glass">${ico('sliders',19)}</button>
+      </div>
+    </div>`;
+  return `<div class="phone player">${stage}${top}${bottom}${panel||''}</div>`;
+}
+
+const SHOTS = [
+  {
+    title:'资料库 · 默认', wide:false,
+    body: libScreen(),
+    zones:[
+      ['顶栏','左齿轮；中标题 17pt；右「导入」与「…」两个方块键。高 54，左右 16，键 36×36'],
+      ['网格','2 列，列距 12、行距 18。缩略图 16:9 圆角 12'],
+      ['卡片','标题 15/600 单行；元信息「时长 · 体积」12.5 灰字'],
+      ['角标','播放中：缩略图内底 3pt 蓝条 + 右下「2:22 Left」'],
+      ['已看','看完的卡片不再显示进度条，右下角改成一个 22pt 玻璃圆勾'],
+      ['空白','原先的搜索条与底部按钮全部移除，底部留空']
+    ]
+  },
+  {
+    title:'「…」菜单', wide:false,
+    body: libScreen(MENU_MORE),
+    zones:[
+      ['尺寸','宽 200，圆角 20，行高 44，左侧图标列 20，比上一版小一圈'],
+      ['第一组','只有「新建文件夹」一项'],
+      ['排序','最近播放 / 名称 / 添加日期三行同宽，✓ 独占首列，其余留空位'],
+      ['方向','单独一行「升序排列」，点一下翻成「降序排列」'],
+      ['其他','刷新缩略图，用细线单独隔开']
+    ]
+  },
+  {
+    title:'导入菜单', wide:false,
+    body: libScreen(MENU_IMPORT),
+    zones:[
+      ['入口','顶栏右侧的导入方块键，点开就两项，没有第三项'],
+      ['相册','PhotosPicker，最多 20 条，导入即拷进 Documents'],
+      ['文件','系统文件选择器，从「文件」App 或 iCloud 多选'],
+      ['图标','26pt 白圆底 + 深色符号，和 Outplayer 一致'],
+      ['尺寸','宽 200，行高 44，只两行，整块高度 96'],
+      ['已移除','Wi-Fi 传输、链接下载、剪贴板都不做']
+    ]
+  },
+  {
+    title:'长按菜单 · 卡片', wide:false,
+    body: libScreen(MENU_LONGPRESS, 0),
+    zones:[
+      ['位置','从被长按卡片的左下角弹出，左沿和卡片对齐，跟操作对象贴在一起'],
+      ['翻转','卡片落在屏幕下半部分时，菜单自动翻到卡片上方，永远不顶到边'],
+      ['尺寸','宽 178（比另两个菜单窄，内容更短），圆角 18，行高 42'],
+      ['头部','32×18 小缩略图 + 片名 13pt + 时长体积 11pt，替掉原先那行12pt灰字'],
+      ['分组','标记与重命名一组，删除用细线单独隔开，红色只出现在这一行'],
+      ['遮罩','整屏压暗 38%；被长按的卡片浮在遮罩之上保持清晰，勾变实心白底'],
+      ['标记','没看过的显示「标记为已看」，已看过的自动变成「标记为未看」'],
+      ['重命名','弹输入框；显示名和磁盘文件名一起改，扩展名保留 .mp4'],
+      ['删除','二次确认后删文件并清掉这条播放记录'],
+      ['不做','多选、拖动排序、移到其他文件夹']
+    ]
+  },
+  {
+    title:'播放页 · 竖屏', wide:false, solo:true,
+    body: playerScreenPortrait(),
+    zones:[
+      ['顶部','左上关闭、右上截图，38pt 圆形玻璃键'],
+      ['画面','16:9 居中，上下黑边，不裁切'],
+      ['第一行','无底进度条 4pt，两端是已播 28:17 / 剩余 -17:07'],
+      ['第二行','左边运输胶囊，右边只剩「列表」与「设置」两个圆键'],
+      ['已移除','画中画按钮取消，小窗功能整条不做'],
+      ['显隐','点屏唤出，播放中 4 秒淡出，暂停时常驻']
+    ]
+  },
+  {
+    title:'播放页 · 横屏', wide:true,
+    body: playerScreenLand(''),
+    zones:[
+      ['合并','宽度够时进度条与按钮并成一行，看片时更省纵向空间'],
+      ['进度条','只给进度条套一层 50 高胶囊，轨道和两侧时间都在里面'],
+      ['其余','运输胶囊、列表与设置圆键仍是各自独立的玻璃，位置不动'],
+      ['贴边','左右 16、距底 16，所有控件贴着画面边缘'],
+      ['手势','左右滑调进度，左半屏上下滑亮度，右半屏音量，长按 2×']
+    ]
+  },
+  {
+    title:'播放列表抽屉 · 横屏', wide:true,
+    body: playerScreenLand(PANEL_LIST_LAND, true),
+    zones:[
+      ['尺寸','宽 320，上下贴边各 12，圆角 28，约占画面右侧 46%'],
+      ['标题','改为左右两栏：左边片名，右边分辨率 / 码率 / 体积 / 序号'],
+      ['队列','缩略图 60×34，行高 42，约 5 行后开始滚'],
+      ['当前项','缩略图外圈 2pt 系统蓝描边'],
+      ['底部','渐隐遮罩提示还有更多，不切断成半行'],
+      ['收起控件','抽屉展开时，进度条、运输键、右上角按钮整层隐藏，只剩画面与抽屉']
+    ]
+  },
+  {
+    title:'播放设置抽屉 · 横屏', wide:true,
+    body: playerScreenLand(PANEL_SET_LAND, true),
+    zones:[
+      ['尺寸','宽 320，上下贴边各 12，圆角 28，和列表抽屉同宽'],
+      ['排列','单列往下排：播放 → 画面 → 界面，不再左右分栏'],
+      ['滚动','一屏放不下就上下滑；底部 42pt 渐隐，最后一行会化掉一截，提示还能往下'],
+      ['行高','39，比竖屏矮 7pt，为的是多露出一行'],
+      ['底部','「只在本轮有效」固定在面板底，不随内容滚走']
+    ]
+  },
+  {
+    title:'播放列表抽屉 · 竖屏', wide:false,
+    body: playerScreenPortrait(PANEL_LIST),
+    zones:[
+      ['位置','右侧滑入，四角 28，距边 12，高度随队列内容，背后画面继续播放'],
+      ['宽度','竖屏 264（占屏宽 67%）；横屏 320（占 46%）'],
+      ['标题','「正在播放」小标签 + 22pt 片名 + 两行播放信息'],
+      ['信息','分辨率 · 码率 / 体积 · 第 n 个共 m 个'],
+      ['当前项','缩略图 80×45，2pt 系统蓝描边'],
+      ['行为','点击立刻切集，打开时自动滚到当前项']
+    ]
+  },
+  {
+    title:'播放设置抽屉 · 竖屏', wide:false,
+    body: playerScreenPortrait(PANEL_SET),
+    zones:[
+      ['播放','速度 −/+ 步进 0.25；模式三选一'],
+      ['画面','比例：适应 / 填充 / 拉伸'],
+      ['界面','自动隐藏时长、屏幕常亮、锁定方向、防误触'],
+      ['生效范围','速度与模式只在本次播放有效，退出即丢'],
+      ['高度','内容装得下就按内容算，不硬拉到屏幕底；装不下才滚'],
+      ['已移除','音轨、增强画质、空间音频、音量增强']
+    ]
+  }
+];
+
+document.getElementById('stage').innerHTML = SHOTS.map((s,i)=>{
+  return `<figure class="${s.wide?'wide':''}${s.solo?' solo':''}">
+    <div class="device ${s.wide?'land':''}">
+      <div class="slot ${s.wide?'land':''}">${s.body}</div>
+    </div>
+    <figcaption><span class="n">${i+1}</span>${s.title}</figcaption>
+    <div class="zones">
+      ${s.zones.map(z=>`<div class="z"><span class="k">${z[0]}</span><span class="v">${z[1]}</span></div>`).join('')}
+    </div>
+  </figure>`;
+}).join('');
+
+// ?only=N 只渲染第 N 屏，供逐屏检查用
+(function(){
+  const only = new URLSearchParams(location.search).get('only');
+  if (only === null) return;
+  const figs = [...document.querySelectorAll('#stage figure')];
+  figs.forEach((f,i)=>{ if(i !== Number(only)) f.remove(); });
+  document.querySelector('header').style.display = 'none';
+  document.querySelectorAll('.specs,.todo').forEach(e=>e.style.display='none');
+  const g = document.querySelector('.grid');
+  g.style.display = 'block';
+  g.style.margin = '0';
+  document.body.style.padding = '0';
+  document.querySelector('.page').style.maxWidth = 'none';
+})();
+</script>
+</body>
+</html>

@@ -4,7 +4,6 @@ import Combine
 final class LibraryStore: ObservableObject {
     @Published private(set) var allItems: [VideoItem] = []
     @Published private(set) var folders: [String] = []
-    @Published var sort: SortOption = .dateDesc
     @Published var query: String = ""
     /// nil 表示根目录
     @Published var currentFolder: String?
@@ -54,23 +53,14 @@ final class LibraryStore: ObservableObject {
 
     // MARK: - 派生数据
 
+    /// 当前目录下的视频（未排序，排序交给视图，因为「最近播放」需要 ProgressStore）
     var items: [VideoItem] {
-        var list = allItems.filter { item in
-            let folder = currentFolder ?? ""
+        let folder = currentFolder ?? ""
+        return allItems.filter { item in
             guard item.folder == folder else { return false }
             if query.isEmpty { return true }
             return item.name.localizedCaseInsensitiveContains(query)
         }
-
-        switch sort {
-        case .dateDesc: list.sort { $0.modified > $1.modified }
-        case .dateAsc: list.sort { $0.modified < $1.modified }
-        case .nameAsc: list.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-        case .nameDesc: list.sort { $0.name.localizedStandardCompare($1.name) == .orderedDescending }
-        case .sizeDesc: list.sort { $0.fileSize > $1.fileSize }
-        case .sizeAsc: list.sort { $0.fileSize < $1.fileSize }
-        }
-        return list
     }
 
     /// 当前目录下的直接子文件夹
@@ -122,6 +112,28 @@ final class LibraryStore: ObservableObject {
     func delete(_ item: VideoItem) {
         try? FileManager.default.removeItem(at: item.url)
         reload()
+    }
+
+    /// 真的改磁盘上的文件名（扩展名保留）。成功返回重命名后的条目，失败返回 nil。
+    func rename(_ item: VideoItem, to newBase: String) -> VideoItem? {
+        let trimmed = newBase.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let ext = item.ext
+        let target = item.url
+            .deletingLastPathComponent()
+            .appendingPathComponent(trimmed)
+            .appendingPathExtension(ext)
+        if target.path == item.url.path { return item }
+
+        do {
+            try FileManager.default.moveItem(at: item.url, to: target)
+        } catch {
+            return nil
+        }
+
+        reload()
+        let relative = target.path.replacingOccurrences(of: documents.path + "/", with: "")
+        return VideoItem(url: target, documents: documents) ?? allItems.first { $0.relativePath == relative }
     }
 
     func createFolder(_ name: String) {

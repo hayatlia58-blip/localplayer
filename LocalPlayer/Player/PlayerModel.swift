@@ -1,7 +1,7 @@
 import AVFoundation
 import Combine
 
-/// AVPlayer 封装：时间轴、音轨、倍速、缓冲状态
+/// AVPlayer 封装：时间轴、倍速、缓冲状态
 final class PlayerModel: ObservableObject {
     let item: VideoItem
     let player: AVPlayer
@@ -13,9 +13,6 @@ final class PlayerModel: ObservableObject {
     @Published var rate: Float = 1
     @Published var failed: String?
 
-    @Published var audioOptions: [AVMediaSelectionOption] = []
-    @Published var selectedAudioIndex = -1
-
     var onEnded: (() -> Void)?
 
     private var timeObserver: Any?
@@ -23,7 +20,6 @@ final class PlayerModel: ObservableObject {
     private var statusObservation: NSKeyValueObservation?
     private var durationObservation: NSKeyValueObservation?
     private var timeControlObservation: NSKeyValueObservation?
-    private var audibleGroup: AVMediaSelectionGroup?
 
     init(item: VideoItem, resumeTime: Double, rate: Float) {
         self.item = item
@@ -32,11 +28,9 @@ final class PlayerModel: ObservableObject {
         playerItem.preferredForwardBufferDuration = 5
         player = AVPlayer(playerItem: playerItem)
         player.allowsExternalPlayback = true
-        player.preventsDisplaySleepDuringVideoPlayback = true
+        // 常亮交给播放页的「屏幕常亮」开关统一控制
+        player.preventsDisplaySleepDuringVideoPlayback = false
         self.rate = rate
-
-        audibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .audible)
-        audioOptions = audibleGroup?.options ?? []
 
         observe(playerItem)
         attachTimeObserver()
@@ -133,14 +127,6 @@ final class PlayerModel: ObservableObject {
     func setRate(_ value: Float) {
         rate = value
         if isPlaying { player.rate = value }
-    }
-
-    // MARK: - 音轨
-
-    func selectAudio(_ index: Int) {
-        guard let group = audibleGroup, index >= 0, index < group.options.count else { return }
-        player.currentItem?.select(group.options[index], in: group)
-        selectedAudioIndex = index
     }
 
     // MARK: - 清理

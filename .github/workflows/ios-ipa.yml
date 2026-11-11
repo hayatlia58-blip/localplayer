@@ -57,6 +57,17 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee build.log
 
+      - name: 提取编译错误
+        if: failure()
+        run: |
+          LOG=build.log
+          [ -f "$LOG" ] || LOG=release.log
+          [ -f "$LOG" ] || exit 0
+          BODY=$(grep -nE "(error|错误): " "$LOG" | head -25)
+          if [ -z "$BODY" ]; then BODY=$(tail -40 "$LOG"); fi
+          MSG=$(printf '%s' "$BODY" | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-55000)
+          echo "::error title=编译失败::$MSG"
+
       - name: 启动模拟器并逐屏截图
         env:
           UDID: ${{ steps.sim.outputs.udid }}
@@ -143,6 +154,17 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             build 2>&1 | tee release.log
+
+      - name: 提取编译错误
+        if: failure()
+        run: |
+          LOG=build.log
+          [ -f "$LOG" ] || LOG=release.log
+          [ -f "$LOG" ] || exit 0
+          BODY=$(grep -nE "(error|错误): " "$LOG" | head -25)
+          if [ -z "$BODY" ]; then BODY=$(tail -40 "$LOG"); fi
+          MSG=$(printf '%s' "$BODY" | sed ':a;N;$!ba;s/\n/%0A/g' | cut -c1-55000)
+          echo "::error title=编译失败::$MSG"
 
       - name: 打包成 ipa
         run: |

@@ -1,12 +1,26 @@
 import SwiftUI
 
+/// 界面色板。数值与 preview/ui-v3.html 的 :root 一一对应，改这里等于改原型。
 enum Palette {
-    static let background = Color(red: 0.043, green: 0.047, blue: 0.059)
-    static let surface = Color(red: 0.078, green: 0.086, blue: 0.102)
-    static let surfaceHigh = Color(red: 0.118, green: 0.129, blue: 0.153)
-    static let stroke = Color.white.opacity(0.08)
-    static let accent = Color(red: 0.353, green: 0.545, blue: 1.0)
-    static let text = Color(red: 0.918, green: 0.929, blue: 0.949)
-    static let secondaryText = Color(red: 0.545, green: 0.569, blue: 0.616)
-    static let tertiaryText = Color(red: 0.373, green: 0.396, blue: 0.443)
+    /// #0A0A0B
+    static let background = Color(red: 10 / 255, green: 10 / 255, blue: 11 / 255)
+
+    /// 系统蓝 #0A84FF
+    static let accent = Color(red: 10 / 255, green: 132 / 255, blue: 255 / 255)
+
+    /// #EBEBF0
+    static let text = Color(red: 235 / 255, green: 235 / 255, blue: 240 / 255)
+    /// rgba(235,235,240,.58)
+    static let secondaryText = text.opacity(0.58)
+    /// rgba(235,235,240,.34)
+    static let tertiaryText = text.opacity(0.34)
+
+    /// #FF453A
+    static let danger = Color(red: 255 / 255, green: 69 / 255, blue: 58 / 255)
+
+    /// 分隔线：rgba(255,255,255,.10)
+    static let hairline = Color.white.opacity(0.10)
+
+    /// 菜单里那一层极淡的选中底色
+    static let rowHighlight = Color.white.opacity(0.08)
 }

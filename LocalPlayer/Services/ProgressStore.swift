@@ -8,12 +8,15 @@ final class ProgressStore: ObservableObject {
         var totals: [String: Double] = [:]
         var lastPlayed: String?
         var order: [String] = []
+        /// 手动「标记为已看」的视频。老数据里没有这个字段，解码时给空数组。
+        var watched: [String]? = nil
     }
 
     @Published private(set) var positions: [String: Double] = [:]
     @Published private(set) var totals: [String: Double] = [:]
     @Published private(set) var lastPlayed: String?
     @Published private(set) var order: [String] = []
+    @Published private(set) var watched: Set<String> = []
 
     private let key = "progress.snapshot.v1"
     private let defaults = UserDefaults.standard
@@ -54,10 +57,51 @@ final class ProgressStore: ObservableObject {
         save()
     }
 
+    // MARK: - 已看标记
+
+    func isWatched(_ id: String) -> Bool { watched.contains(id) }
+
+    func setWatched(_ id: String, _ value: Bool) {
+        if value {
+            watched.insert(id)
+            // 标记为已看时顺手清掉进度条，否则卡片上还挂着半截进度
+            positions[id] = nil
+            totals[id] = nil
+        } else {
+            watched.remove(id)
+        }
+        save()
+    }
+
+    func forget(id: String) {
+        positions[id] = nil
+        totals[id] = nil
+        watched.remove(id)
+        order.removeAll { $0 == id }
+        if lastPlayed == id { lastPlayed = order.first }
+        save()
+    }
+
+    /// 磁盘重命名后把这条记录迁到新 id 上，否则进度和已看标记会丢
+    func renamePath(from old: String, to new: String) {
+        guard old != new else { return }
+        if let value = positions.removeValue(forKey: old) { positions[new] = value }
+        if let value = totals.removeValue(forKey: old) { totals[new] = value }
+        if watched.remove(old) != nil { watched.insert(new) }
+        if let index = order.firstIndex(of: old) { order[index] = new }
+        if lastPlayed == old { lastPlayed = new }
+        save()
+    }
+
     /// 最近观看列表中仍然存在的条目
     func recentItems(from items: [VideoItem], limit: Int = 12) -> [VideoItem] {
         let map = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
         return order.compactMap { map[$0] }.prefix(limit).map { $0 }
+    }
+
+    /// 「最近播放」排序用的排名，没播过的排到最后
+    func recencyRank(_ id: String) -> Int {
+        order.firstIndex(of: id) ?? Int.max
     }
 
     private func load() {
@@ -67,6 +111,7 @@ final class ProgressStore: ObservableObject {
         totals = snap.totals
         lastPlayed = snap.lastPlayed
         order = snap.order
+        watched = Set(snap.watched ?? [])
     }
 
     /// 重新从磁盘读一次。DebugSeed 写入示例数据发生在属性初始化之后，
@@ -74,7 +119,13 @@ final class ProgressStore: ObservableObject {
     func refresh() { load() }
 
     private func save() {
-        let snap = Snapshot(positions: positions, totals: totals, lastPlayed: lastPlayed, order: order)
+        let snap = Snapshot(
+            positions: positions,
+            totals: totals,
+            lastPlayed: lastPlayed,
+            order: order,
+            watched: Array(watched)
+        )
         if let data = try? JSONEncoder().encode(snap) {
             defaults.set(data, forKey: key)
         }

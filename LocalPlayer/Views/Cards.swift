@@ -4,13 +4,13 @@ import SwiftUI
 
 struct ThumbnailView: View {
     let item: VideoItem
-    var cornerRadius: CGFloat = 10
+    var cornerRadius: CGFloat = 12
 
     @State private var image: UIImage?
 
     var body: some View {
         ZStack {
-            Rectangle().fill(Palette.surfaceHigh)
+            Rectangle().fill(Color(white: 0.09))
             if let image {
                 Image(uiImage: image)
                     .resizable()
@@ -18,7 +18,7 @@ struct ThumbnailView: View {
             } else {
                 Image(systemName: item.systemPlayable ? "film" : "exclamationmark.triangle")
                     .font(.system(size: 20, weight: .light))
-                    .foregroundColor(Palette.tertiaryText)
+                    .foregroundStyle(Palette.tertiaryText)
             }
         }
         .aspectRatio(16.0 / 9.0, contentMode: .fit)
@@ -32,7 +32,7 @@ struct ThumbnailView: View {
     }
 }
 
-// MARK: - 进度条（缩略图底部细条）
+// MARK: - 缩略图底部细进度条
 
 private struct CardProgressBar: View {
     let fraction: Double
@@ -50,19 +50,30 @@ private struct CardProgressBar: View {
     }
 }
 
-private struct ContainerBadge: View {
-    let item: VideoItem
+// MARK: - 右下角已看角标
+
+struct WatchedBadge: View {
+    var active: Bool
 
     var body: some View {
-        Text(item.ext.uppercased())
-            .font(.system(size: 9, weight: .bold))
-            .foregroundColor(.white)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
-            .background(
-                (item.systemPlayable ? Color.black.opacity(0.55) : Color.orange.opacity(0.9)),
-                in: RoundedRectangle(cornerRadius: 4, style: .continuous)
-            )
+        Image(systemName: "checkmark")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(active ? Color(red: 0.08, green: 0.09, blue: 0.10) : Color.white)
+            .frame(width: 22, height: 22)
+            .background {
+                Circle()
+                    .fill(active ? AnyShapeStyle(Color.white) : AnyShapeStyle(Material.ultraThinMaterial))
+                    .overlay {
+                        Circle().fill(active ? Color.clear : Color.black.opacity(0.34))
+                    }
+                    .overlay {
+                        Circle().strokeBorder(
+                            Color.white.opacity(active ? 0 : 0.42),
+                            lineWidth: 0.75
+                        )
+                    }
+                    .shadow(color: .black.opacity(0.4), radius: 4, y: 1)
+            }
     }
 }
 
@@ -71,107 +82,85 @@ private struct ContainerBadge: View {
 struct VideoCard: View {
     let item: VideoItem
     let fraction: Double
+    var watched: Bool = false
+    /// 长按选中时角标变实心白底
+    var active: Bool = false
+
+    @State private var duration: Double?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 0) {
             ThumbnailView(item: item)
                 .overlay(alignment: .bottom) {
-                    if fraction > 0.01 {
+                    if fraction > 0.01, !watched {
                         CardProgressBar(fraction: fraction)
                     }
                 }
-                .overlay(alignment: .topTrailing) {
-                    ContainerBadge(item: item).padding(6)
+                .overlay(alignment: .bottomTrailing) {
+                    if watched || active {
+                        WatchedBadge(active: active)
+                            .padding(8)
+                    }
                 }
 
             Text(item.displayName)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(Palette.text)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text("\(Fmt.size(item.fileSize)) · \(Fmt.date.string(from: item.modified))")
-                .font(.system(size: 11))
-                .foregroundColor(Palette.tertiaryText)
-        }
-        .contentShape(Rectangle())
-    }
-}
-
-// MARK: - 列表行
-
-struct VideoRow: View {
-    let item: VideoItem
-    let fraction: Double
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ThumbnailView(item: item, cornerRadius: 8)
-                .frame(width: 104)
-                .overlay(alignment: .bottom) {
-                    if fraction > 0.01 {
-                        CardProgressBar(fraction: fraction)
-                    }
-                }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.displayName)
-                    .font(.system(size: 13.5, weight: .medium))
-                    .foregroundColor(Palette.text)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text("\(Fmt.size(item.fileSize)) · \(Fmt.date.string(from: item.modified))")
-                    .font(.system(size: 11))
-                    .foregroundColor(Palette.tertiaryText)
-            }
-
-            Spacer(minLength: 0)
-
-            Text(item.ext.uppercased())
-                .font(.system(size: 9, weight: .bold))
-                .foregroundColor(item.systemPlayable ? Palette.tertiaryText : .orange)
-        }
-        .contentShape(Rectangle())
-    }
-}
-
-// MARK: - 继续观看卡片
-
-struct RecentCard: View {
-    let item: VideoItem
-    let fraction: Double
-    let remaining: Double
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            ThumbnailView(item: item)
-                .frame(width: 178)
-                .overlay(alignment: .bottom) {
-                    if fraction > 0.01 {
-                        CardProgressBar(fraction: fraction)
-                    }
-                }
-                .overlay(alignment: .bottomLeading) {
-                    Text("剩余 \(Fmt.time(remaining))")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.black.opacity(0.55), in: Capsule())
-                        // 卡片底部有一条 3pt 的进度条，这里要留出空间，否则会贴在一起
-                        .padding(.horizontal, 6)
-                        .padding(.bottom, 10)
-                }
-
-            Text(item.displayName)
-                .font(.system(size: 12.5, weight: .medium))
-                .foregroundColor(Palette.text)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.text)
                 .lineLimit(1)
+                .truncationMode(.tail)
+                .padding(.top, 9)
+
+            Text(metaText)
+                .font(.system(size: 12.5))
+                .foregroundStyle(Palette.secondaryText)
+                .monospacedDigit()
+                .lineLimit(1)
+                .padding(.top, 4)
         }
-        .frame(width: 178, alignment: .leading)
+        .contentShape(Rectangle())
+        .task(id: item.id) {
+            duration = await ThumbnailLoader.shared.duration(for: item)
+        }
+    }
+
+    private var metaText: String {
+        if let duration, duration > 0 {
+            return "\(Fmt.time(duration)) · \(Fmt.size(item.fileSize))"
+        }
+        return Fmt.size(item.fileSize)
+    }
+}
+
+// MARK: - 文件夹卡片
+
+struct FolderCard: View {
+    let name: String
+    let count: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.75)
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 30, weight: .regular))
+                    .foregroundStyle(Palette.accent.opacity(0.9))
+            }
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+
+            Text(name)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.text)
+                .lineLimit(1)
+                .padding(.top, 9)
+
+            Text("\(count) 个视频")
+                .font(.system(size: 12.5))
+                .foregroundStyle(Palette.secondaryText)
+                .padding(.top, 4)
+        }
         .contentShape(Rectangle())
     }
 }

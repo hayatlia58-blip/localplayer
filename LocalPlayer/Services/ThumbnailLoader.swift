@@ -6,6 +6,7 @@ final class ThumbnailLoader {
     static let shared = ThumbnailLoader()
 
     private let cache = NSCache<NSString, UIImage>()
+    private let durationCache = NSCache<NSString, NSNumber>()
     private let queue = DispatchQueue(label: "localplayer.thumbnails", qos: .utility, attributes: .concurrent)
     private var inFlight = Set<String>()
     private var pending: [String: [(UIImage?) -> Void]] = [:]
@@ -13,6 +14,18 @@ final class ThumbnailLoader {
 
     func cached(for key: String) -> UIImage? {
         cache.object(forKey: key as NSString)
+    }
+
+    /// 卡片副标题要显示时长，这里单独缓存一份，避免每张卡都去解析一次 Asset
+    func duration(for item: VideoItem) async -> Double? {
+        if let hit = durationCache.object(forKey: item.id as NSString) { return hit.doubleValue }
+        guard item.systemPlayable else { return nil }
+        let asset = AVURLAsset(url: item.url)
+        guard let value = try? await asset.load(.duration) else { return nil }
+        let seconds = value.seconds
+        guard seconds.isFinite, seconds > 0 else { return nil }
+        durationCache.setObject(NSNumber(value: seconds), forKey: item.id as NSString)
+        return seconds
     }
 
     func load(for item: VideoItem, size: CGSize, completion: @escaping (UIImage?) -> Void) {
@@ -69,5 +82,6 @@ final class ThumbnailLoader {
 
     func clear() {
         cache.removeAllObjects()
+        durationCache.removeAllObjects()
     }
 }
