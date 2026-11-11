@@ -310,6 +310,10 @@ private struct PlayerCore: View {
     }
 
     private func scheduleHide() {
+        #if DEBUG
+        // 自动化截图用：把控制栏钉住，避免 4 秒自动隐藏导致拍不到
+        if DebugSeed.argument(after: "-keepChrome") == "1" { return }
+        #endif
         hideToken += 1
         let token = hideToken
         guard model.isPlaying else { return }

@@ -86,8 +86,8 @@ jobs:
           snap 02-home "-screen home -seedDemo 1"
           # 进到「示例视频」文件夹，看真实的缩略图网格
           snap 03-folder "-screen folder"
-          # 播放页必须在 4 秒内拍，否则控制栏会自动隐藏
-          snap 04-player "-screen player" 2
+          # 播放页：-keepChrome 把控制栏钉住，否则 4 秒后自动隐藏拍不到
+          snap 04-player "-screen player -keepChrome 1" 3
           snap 05-settings "-screen settings"
           snap 06-upload "-screen upload"
 
