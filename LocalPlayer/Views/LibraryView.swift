@@ -100,7 +100,13 @@ struct LibraryView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             switch route {
             case "player":
-                if let first = library.items.first { playingItem = first }
+                // 用 allItems 而不是 items：根目录下视频都在子文件夹里，items 是空的
+                if let first = library.allItems.first {
+                    if !first.folder.isEmpty { library.currentFolder = first.folder }
+                    playingItem = first
+                }
+            case "folder":
+                if let first = library.subfolders.first { library.currentFolder = first }
             case "settings":
                 showSettings = true
             case "upload":
@@ -357,7 +363,7 @@ struct LibraryView: View {
             if library.subfolders.isEmpty {
                 emptyState
             } else {
-                Text("此文件夹内没有视频")
+                Text(library.allItems.isEmpty ? "此文件夹内没有视频" : "视频在上面的文件夹里，点进去就能看")
                     .font(.system(size: 12))
                     .foregroundColor(Palette.tertiaryText)
                     .frame(maxWidth: .infinity, alignment: .center)

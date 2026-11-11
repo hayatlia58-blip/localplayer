@@ -81,11 +81,13 @@ jobs:
 
           # 空状态：先不塞示例数据
           snap 01-empty "-screen empty"
-          # 首页：首次启动时生成 4 段示例视频（含一张缩略图、一条外挂字幕）
+          # 首页：首次启动时生成 4 段示例视频（含缩略图、一条外挂字幕）
           snap 02-home "-screen home -seedDemo 1"
-          snap 03-player "-screen player"
-          snap 04-settings "-screen settings"
-          snap 05-upload "-screen upload"
+          # 进到「示例视频」文件夹，看真实的缩略图网格
+          snap 03-folder "-screen folder"
+          snap 04-player "-screen player"
+          snap 05-settings "-screen settings"
+          snap 06-upload "-screen upload"
 
           ls -lh shots
 
