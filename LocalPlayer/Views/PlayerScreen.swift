@@ -390,7 +390,8 @@ private struct PlayerCore: View {
             parts.append((item.folder as NSString).lastPathComponent)
         }
         if let name = model.primarySubtitleName {
-            parts.append(name)
+            let base = (name as NSString).deletingPathExtension
+            parts.append("字幕 \(base)")
         }
         return parts.joined(separator: " · ")
     }
@@ -606,9 +607,12 @@ private struct PlayerCore: View {
                         .foregroundColor(Palette.accent)
                 }
                 Spacer(minLength: 0)
-                Text(Fmt.size(item.fileSize))
-                    .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.45))
+                if model.duration > 1 {
+                    Text("−\(Fmt.time(max(0, model.duration - displayTime)))")
+                        .font(.system(size: 11, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundColor(.white.opacity(0.45))
+                }
             }
         }
     }
@@ -815,6 +819,9 @@ private struct PlayerCore: View {
 
         model.play()
         showChrome(persistent: false)
+        #if DEBUG
+        DebugSeed.forceLandscapeIfRequested()
+        #endif
     }
 
     private func restorePosition() {

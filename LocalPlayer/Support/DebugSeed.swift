@@ -17,6 +17,25 @@ enum DebugSeed {
 
     static var isEnabled: Bool { argument(after: "-seedDemo") == "1" }
 
+    /// 截图用：把 App 真正转到横屏。走的是 iOS 16 的 requestGeometryUpdate，
+    /// 不是把 UI 转个角度假装横屏，所以布局是真的按横屏算的。
+    static func forceLandscapeIfRequested() {
+        guard argument(after: "-landscape") == "1" else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            guard let scene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first(where: { $0.activationState == .foregroundActive })
+                ?? UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first
+            else { return }
+            if #available(iOS 16.0, *) {
+                scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeRight))
+            } else {
+                UIDevice.current.setValue(UIInterfaceOrientation.landscapeRight.rawValue,
+                                          forKey: "orientation")
+            }
+        }
+    }
+
     static func runIfNeeded() {
         guard isEnabled else { return }
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
