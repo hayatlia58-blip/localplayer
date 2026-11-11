@@ -3,7 +3,7 @@ import AVFoundation
 
 struct VideoSurface: UIViewRepresentable {
     let player: AVPlayer
-    var gravity: AVVideoGravity
+    var gravity: AVLayerVideoGravity
     var onLayer: (AVPlayerLayer) -> Void
 
     func makeUIView(context: Context) -> PlayerUIView {
