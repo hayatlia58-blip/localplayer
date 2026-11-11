@@ -61,6 +61,24 @@ enum DebugSeed {
             writeClip(to: folder.appendingPathComponent(spec.name),
                       top: spec.top, bottom: spec.bottom, seconds: 8)
         }
+
+        // 根目录再放 4 段，首页截图才能看到「文件夹卡片 + 视频网格」的真实样子
+        let rootSpecs: [(name: String, top: UIColor, bottom: UIColor)] = [
+            ("谷雨 第7集.mp4", UIColor(red: 0.91, green: 0.63, blue: 0.42, alpha: 1),
+                               UIColor(red: 0.16, green: 0.14, blue: 0.41, alpha: 1)),
+            ("谷雨 第8集.mp4", UIColor(red: 0.29, green: 0.42, blue: 0.54, alpha: 1),
+                               UIColor(red: 0.08, green: 0.09, blue: 0.14, alpha: 1)),
+            ("谷雨 第9集.mp4", UIColor(red: 0.23, green: 0.16, blue: 0.15, alpha: 1),
+                               UIColor(red: 0.05, green: 0.05, blue: 0.07, alpha: 1)),
+            ("谷雨 第10集.mp4", UIColor(red: 0.48, green: 0.42, blue: 0.23, alpha: 1),
+                                UIColor(red: 0.14, green: 0.13, blue: 0.09, alpha: 1))
+        ]
+
+        for spec in rootSpecs {
+            let url = documents.appendingPathComponent(spec.name)
+            guard !FileManager.default.fileExists(atPath: url.path) else { continue }
+            writeClip(to: url, top: spec.top, bottom: spec.bottom, seconds: 8)
+        }
     }
 
     /// 伪造两条播放记录，只为让首页的「继续观看」能出现在截图里。

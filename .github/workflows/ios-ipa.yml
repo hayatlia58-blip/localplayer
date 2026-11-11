@@ -5,6 +5,9 @@ name: Build & Screenshot
 #   2) LocalPlayer-unsigned.ipa —— 未签名 ipa，下载后用 Sideloadly 签名装机
 # 日志（build.log）无论成功失败都会上传，编译报错原文在里面。
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   push:
@@ -113,6 +116,24 @@ jobs:
           path: shots/*.png
           if-no-files-found: warn
           retention-days: 30
+
+      - name: 把截图推到 ci-shots 分支
+        if: always()
+        continue-on-error: true
+        run: |
+          set -e
+          TMP=$(mktemp -d)
+          cd "$TMP"
+          git init -q
+          git config user.name "ci"
+          git config user.email "ci@local"
+          cp -r "$GITHUB_WORKSPACE"/shots/*.png . 2>/dev/null || exit 0
+          printf '# 模拟器截图\n\n每次构建自动覆盖，仅供查看。\n' > README.md
+          git add -A
+          git commit -qm "shots: ${GITHUB_SHA:0:7}"
+          git push -q --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:ci-shots
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 上传编译日志
         if: always()
