@@ -45,6 +45,7 @@ struct LibraryView: View {
         .overlay { importingOverlay }
         .onAppear {
             library.reload()
+            progress.refresh()
             applyDebugRoute()
         }
         .onChange(of: library.currentFolder) { _, _ in

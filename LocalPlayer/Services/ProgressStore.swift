@@ -29,11 +29,13 @@ final class ProgressStore: ObservableObject {
 
     func update(id: String, time: Double, total: Double) {
         guard total > 1 else { return }
-        // 末尾 15 秒视为看完，清除进度
-        if time >= total - 15 {
+        // 末尾一小段视为看完：长片用 15 秒，短片按比例缩，否则 8 秒的片子永远算看完
+        let tail = min(15, total * 0.25)
+        let head = min(5, total * 0.1)
+        if time >= total - tail {
             positions[id] = nil
             totals[id] = total
-        } else if time > 5 {
+        } else if time > head {
             positions[id] = time
             totals[id] = total
         }
@@ -66,6 +68,10 @@ final class ProgressStore: ObservableObject {
         lastPlayed = snap.lastPlayed
         order = snap.order
     }
+
+    /// 重新从磁盘读一次。DebugSeed 写入示例数据发生在属性初始化之后，
+    /// 靠这个把种子记录读进来（正常使用时是幂等的）。
+    func refresh() { load() }
 
     private func save() {
         let snap = Snapshot(positions: positions, totals: totals, lastPlayed: lastPlayed, order: order)
