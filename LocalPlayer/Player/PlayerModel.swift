@@ -43,8 +43,8 @@ final class PlayerModel: ObservableObject {
         player.preventsDisplaySleepDuringVideoPlayback = true
         self.rate = rate
 
-        legibleGroup = asset.mediaSelectionGroup(for: .legible)
-        audibleGroup = asset.mediaSelectionGroup(for: .audible)
+        legibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .legible)
+        audibleGroup = asset.mediaSelectionGroup(forMediaCharacteristic: .audible)
         audioOptions = audibleGroup?.options ?? []
         legibleOptions = legibleGroup?.options ?? []
 
